@@ -34,11 +34,19 @@ export async function getReservationById(id: string): Promise<ReservationWithRoo
   return data as ReservationWithRoom
 }
 
+function buildPayload(values: ReservationFormValues): Record<string, unknown> {
+  const { nome_empresa, nivel_evento, ...base } = values
+  const payload: Record<string, unknown> = { ...base }
+  if (nome_empresa != null) payload.nome_empresa = nome_empresa
+  if (nivel_evento != null) payload.nivel_evento = nivel_evento
+  return payload
+}
+
 export async function createReservation(values: ReservationFormValues): Promise<Reservation> {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('reservas')
-    .insert(values)
+    .insert(buildPayload(values))
     .select()
     .single()
 
@@ -53,7 +61,7 @@ export async function updateReservation(
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('reservas')
-    .update(values)
+    .update(buildPayload(values))
     .eq('id', id)
     .select()
     .single()

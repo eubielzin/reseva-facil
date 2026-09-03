@@ -40,9 +40,15 @@ create table if not exists reservas (
   created_at               timestamptz   not null default now(),
   updated_at               timestamptz   not null default now(),
 
+  nome_empresa             varchar(150),
+  nivel_evento             varchar(5),
   -- End time must be after start time
   constraint horario_valido check (horario_fim > horario_inicio)
 );
+
+-- Migration for existing databases:
+-- ALTER TABLE reservas ADD COLUMN IF NOT EXISTS nome_empresa varchar(150);
+-- ALTER TABLE reservas ADD COLUMN IF NOT EXISTS nivel_evento varchar(5);
 
 -- ============================================================
 -- INDEXES

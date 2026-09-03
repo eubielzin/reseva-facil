@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { DoorOpen, CalendarDays, Activity, Clock } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
 import { ErrorState } from '@/components/error-state'
@@ -7,9 +9,20 @@ import { CardSkeleton } from '@/components/loading-state'
 import { StatsCard } from '@/features/dashboard/components/stats-card'
 import { UpcomingReservations } from '@/features/dashboard/components/upcoming-reservations'
 import { useDashboard } from '@/hooks/use-reservations'
+import { useRole } from '@/hooks/use-role'
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { isAdmin, isLoaded } = useRole()
   const { data, isLoading, isError, refetch } = useDashboard()
+
+  useEffect(() => {
+    if (isLoaded && !isAdmin) {
+      router.replace('/reservas')
+    }
+  }, [isLoaded, isAdmin, router])
+
+  if (!isLoaded || !isAdmin) return null
 
   return (
     <div>

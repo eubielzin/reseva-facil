@@ -4,16 +4,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
+import { useRole } from '@/hooks/use-role'
 import { CalendarDays, LayoutDashboard, DoorOpen } from 'lucide-react'
 
-const links = [
+const adminLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/salas', label: 'Salas', icon: DoorOpen },
+  { href: '/reservas', label: 'Reservas', icon: CalendarDays },
+]
+
+const userLinks = [
   { href: '/salas', label: 'Salas', icon: DoorOpen },
   { href: '/reservas', label: 'Reservas', icon: CalendarDays },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
+  const { isAdmin } = useRole()
+  const links = isAdmin ? adminLinks : userLinks
 
   return (
     <aside className="hidden md:flex flex-col w-56 shrink-0 border-r bg-background h-screen sticky top-0">
@@ -46,6 +54,8 @@ export function Navbar() {
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { isAdmin } = useRole()
+  const links = isAdmin ? adminLinks : userLinks
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-background flex">

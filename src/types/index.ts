@@ -17,6 +17,8 @@ export interface Reservation {
   data: string // ISO date string YYYY-MM-DD
   horario_inicio: string // HH:MM
   horario_fim: string // HH:MM
+  nome_empresa?: string | null
+  nivel_evento?: 'baixa' | 'media' | 'alta' | null
   created_at: string
   updated_at: string
 }

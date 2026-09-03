@@ -1,4 +1,4 @@
-const HORA_ABERTURA = '07:00'
+const HORA_ABERTURA = '08:00'
 
 export interface TimeInterval {
   horario_inicio: string // HH:MM

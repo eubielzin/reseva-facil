@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className="h-full">
-      <body className={`${geist.className} h-full antialiased bg-background text-foreground`}>
+      <body suppressHydrationWarning className={`${geist.className} h-full antialiased bg-background text-foreground`}>
         <ClerkProvider>
           <Providers>
             {children}

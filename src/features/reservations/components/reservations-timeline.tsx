@@ -3,8 +3,16 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { getReservationStatus } from '@/lib/utils'
 import { useReservations } from '@/hooks/use-reservations'
@@ -64,8 +72,27 @@ function blockColors(r: ReservationWithRoom): string {
   return 'bg-slate-100 border-slate-300 text-slate-500'
 }
 
+const cap = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
+
+const NIVEL_LABELS: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
+
+function nivelBadgeClass(nivel: string): string {
+  if (nivel === 'baixa') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  if (nivel === 'media') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+  return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+}
+
+function nivelDotClass(nivel: string): string {
+  if (nivel === 'baixa') return 'bg-emerald-300'
+  if (nivel === 'media') return 'bg-amber-300'
+  return 'bg-red-300'
+}
+
 export function ReservationsTimeline() {
   const [baseDate, setBaseDate] = useState(() => new Date())
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date())
+  const [selectedReservation, setSelectedReservation] = useState<ReservationWithRoom | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { data: reservations = [], isLoading } = useReservations()
 
@@ -97,7 +124,6 @@ export function ReservationsTimeline() {
     const s = format(weekStart, 'MMMM', { locale: ptBR })
     const e = format(days[6], 'MMMM', { locale: ptBR })
     const y = format(weekStart, 'yyyy')
-    const cap = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
     return s === e ? `${cap(s)} de ${y}` : `${cap(s)} – ${cap(e)} de ${y}`
   })()
 
@@ -120,7 +146,35 @@ export function ReservationsTimeline() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h2 className="text-sm font-medium">{monthLabel}</h2>
+
+        {/* Seletor rápido — abre calendário */}
+        <Popover
+          open={calendarOpen}
+          onOpenChange={(open) => {
+            if (open) setCalendarMonth(weekStart)
+            setCalendarOpen(open)
+          }}
+        >
+          <PopoverTrigger className="flex items-center gap-1 text-sm font-medium hover:text-foreground/70 transition-colors">
+            {monthLabel}
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={weekStart}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              onSelect={(date) => {
+                if (date) {
+                  setBaseDate(date)
+                  setCalendarOpen(false)
+                }
+              }}
+              locale={ptBR}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Grade — scroll horizontal engloba cabeçalho + conteúdo juntos */}
@@ -157,7 +211,7 @@ export function ReservationsTimeline() {
 
               {/* Coluna de horas — sticky left para scroll horizontal */}
               <div
-                className="w-14 shrink-0 sticky left-0 z-10 bg-background border-r overflow-hidden relative"
+                className="w-14 shrink-0 sticky left-0 z-10 bg-background border-r overflow-hidden"
                 style={{ height: TOTAL_HEIGHT }}
               >
                 {HOURS.map((h, i) => (
@@ -222,7 +276,7 @@ export function ReservationsTimeline() {
                         <div
                           key={r.id}
                           className={cn(
-                            'absolute rounded-md border px-1.5 py-0.5 overflow-hidden z-20 select-none',
+                            'absolute rounded-md border px-1.5 py-0.5 overflow-hidden z-20 select-none cursor-pointer transition-opacity hover:opacity-85',
                             blockColors(r)
                           )}
                           style={{
@@ -231,9 +285,14 @@ export function ReservationsTimeline() {
                             left: `calc(2px + ${left}%)`,
                             width: `calc(${width}% - 4px)`,
                           }}
-                          title={`${r.titulo} · ${r.sala.nome} · ${r.horario_inicio.slice(0, 5)}–${r.horario_fim.slice(0, 5)}`}
+                          onClick={() => setSelectedReservation(r)}
                         >
-                          <p className="text-[11px] font-semibold leading-tight truncate">{r.titulo}</p>
+                          <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
+                            {r.nivel_evento && (
+                              <span className={cn('inline-block h-1.5 w-1.5 rounded-full shrink-0', nivelDotClass(r.nivel_evento))} />
+                            )}
+                            {r.titulo}
+                          </p>
                           {height >= 34 && (
                             <p className="text-[10px] leading-tight opacity-90 truncate">{r.sala.nome}</p>
                           )}
@@ -268,6 +327,65 @@ export function ReservationsTimeline() {
           <span>Encerrada</span>
         </div>
       </div>
+
+      {/* Dialog de detalhes da reserva */}
+      <Dialog
+        open={!!selectedReservation}
+        onOpenChange={(open) => { if (!open) setSelectedReservation(null) }}
+      >
+        <DialogContent className="max-w-sm" showCloseButton>
+          {selectedReservation && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-2 pr-6">
+                  <DialogTitle className="flex-1 leading-snug">
+                    {selectedReservation.titulo}
+                  </DialogTitle>
+                  {selectedReservation.nivel_evento && (
+                    <span className={cn(
+                      'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                      nivelBadgeClass(selectedReservation.nivel_evento)
+                    )}>
+                      {NIVEL_LABELS[selectedReservation.nivel_evento]}
+                    </span>
+                  )}
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-2.5 text-sm">
+                {[
+                  ['Sala', selectedReservation.sala.nome],
+                  [
+                    'Data',
+                    cap(format(
+                      new Date(selectedReservation.data + 'T12:00:00'),
+                      "EEEE, dd 'de' MMMM 'de' yyyy",
+                      { locale: ptBR }
+                    )),
+                  ],
+                  [
+                    'Horário',
+                    `${selectedReservation.horario_inicio.slice(0, 5)} – ${selectedReservation.horario_fim.slice(0, 5)}`,
+                  ],
+                  ['Responsável', selectedReservation.participante_responsavel],
+                  [
+                    'Participantes',
+                    String(selectedReservation.quantidade_participantes),
+                  ],
+                  ...(selectedReservation.nome_empresa
+                    ? [['Empresa', selectedReservation.nome_empresa]]
+                    : []),
+                ].map(([label, value]) => (
+                  <div key={label} className="flex gap-3">
+                    <span className="text-muted-foreground w-24 shrink-0">{label}</span>
+                    <span className="font-medium">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

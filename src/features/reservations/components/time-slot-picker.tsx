@@ -4,7 +4,7 @@ import { useMemo, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-function generateSlots(fromHour = 7): string[] {
+function generateSlots(fromHour = 8): string[] {
   const slots: string[] = []
   for (let h = fromHour; h <= 23; h++) {
     for (const m of [0, 30]) {
@@ -123,7 +123,7 @@ export function TimeSlotPicker({
   disabled,
   availableFrom,
 }: TimeSlotPickerProps) {
-  const fromHour = availableFrom ? parseInt(availableFrom.split(':')[0]) : 7
+  const fromHour = availableFrom ? parseInt(availableFrom.split(':')[0]) : 8
 
   const allSlots = useMemo(() => generateSlots(fromHour), [fromHour])
 

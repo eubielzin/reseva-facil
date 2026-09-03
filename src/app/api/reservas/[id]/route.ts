@@ -81,7 +81,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     // Regra 4 — Disponibilidade na madrugada
     if (!sala.disponivel_madrugada && isMadrugada(horario_inicio)) {
       return NextResponse.json(
-        { error: `A sala "${sala.nome}" não aceita reservas na madrugada (antes das 07:00).` },
+        { error: `A sala "${sala.nome}" não aceita reservas antes das 08:00.` },
         { status: 409 }
       )
     }
