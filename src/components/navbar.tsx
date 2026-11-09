@@ -6,29 +6,48 @@ import { UserButton } from '@clerk/nextjs'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
 import { BrandMark, BrandName } from '@/components/brand-mark'
-import { CalendarDays, LayoutDashboard, DoorOpen } from 'lucide-react'
+import { NotificationBell } from '@/features/notificacoes/components/notification-bell'
+import { CalendarDays, LayoutDashboard, DoorOpen, Inbox, UserRound, type LucideIcon } from 'lucide-react'
+import type { Papel } from '@/types'
 
-const adminLinks = [
-  { href: '/', label: 'Hoje', icon: LayoutDashboard },
-  { href: '/salas', label: 'Salas', icon: DoorOpen },
-  { href: '/reservas', label: 'Reservas', icon: CalendarDays },
-]
+interface NavLink {
+  href: string
+  label: string
+  icon: LucideIcon
+}
 
-const userLinks = [
-  { href: '/salas', label: 'Salas', icon: DoorOpen },
-  { href: '/reservas', label: 'Minhas reservas', icon: CalendarDays },
-]
+const LINKS: Record<Papel, NavLink[]> = {
+  admin: [
+    { href: '/', label: 'Hoje', icon: LayoutDashboard },
+    { href: '/pedidos', label: 'Pedidos', icon: Inbox },
+    { href: '/salas', label: 'Salas', icon: DoorOpen },
+    { href: '/reservas', label: 'Reservas', icon: CalendarDays },
+    { href: '/perfil', label: 'Perfil', icon: UserRound },
+  ],
+  organizador: [
+    { href: '/salas', label: 'Salas', icon: DoorOpen },
+    { href: '/reservas', label: 'Minhas reservas', icon: CalendarDays },
+    { href: '/perfil', label: 'Perfil', icon: UserRound },
+  ],
+  // Etapa 2 traz a vitrine de eventos e "Meus ingressos"
+  usuario: [{ href: '/perfil', label: 'Perfil', icon: UserRound }],
+}
+
+function useLinks() {
+  const { papel, isLoaded } = useRole()
+  return isLoaded ? LINKS[papel] : []
+}
 
 // Sidebar no mesmo fundo da página, sem borda; item ativo é um pill cinza neutro
 export function Navbar() {
   const pathname = usePathname()
-  const { isAdmin } = useRole()
-  const links = isAdmin ? adminLinks : userLinks
+  const links = useLinks()
 
   return (
     <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-sidebar h-screen sticky top-0">
-      <div className="px-5 pt-6 pb-7">
+      <div className="flex items-center justify-between pl-5 pr-3 pt-6 pb-7">
         <BrandName />
+        <NotificationBell />
       </div>
       <nav className="flex flex-col gap-0.5 px-3 flex-1">
         {links.map(({ href, label, icon: Icon }) => {
@@ -65,15 +84,17 @@ export function MobileHeader() {
         <BrandMark />
         <span className="text-sm font-semibold">ReservaFácil</span>
       </div>
-      <UserButton />
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+        <UserButton />
+      </div>
     </header>
   )
 }
 
 export function MobileNav() {
   const pathname = usePathname()
-  const { isAdmin } = useRole()
-  const links = isAdmin ? adminLinks : userLinks
+  const links = useLinks()
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-card flex">

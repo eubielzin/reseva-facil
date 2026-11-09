@@ -15,10 +15,20 @@ export const queryKeys = {
     detail: (id: string) => ['rooms', id] as const,
   },
   reservations: {
-    all: (salaId?: string) => ['reservations', { salaId }] as const,
+    all: (salaId?: string, status?: string) => ['reservations', { salaId, status }] as const,
     detail: (id: string) => ['reservations', id] as const,
     // Sob o prefixo 'reservations': criar/editar/excluir reserva já invalida a ocupação
     ocupacao: (data?: string, salaId?: string) => ['reservations', 'ocupacao', { data, salaId }] as const,
   },
   dashboard: ['dashboard'] as const,
+  perfil: ['perfil'] as const,
+  notificacoes: {
+    // Prefixo comum: marcar como lida invalida lista e contagem juntas
+    root: ['notificacoes'] as const,
+    lista: (naoLidas: boolean, limite: number) => ['notificacoes', 'lista', { naoLidas, limite }] as const,
+    contagem: ['notificacoes', 'contagem'] as const,
+  },
+  emails: {
+    falhos: ['emails', 'falhou'] as const,
+  },
 }
