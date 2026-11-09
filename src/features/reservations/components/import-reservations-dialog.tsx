@@ -4,7 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { format } from 'date-fns'
 import {
-  Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Download,
+  Upload, FileSpreadsheet, CheckCircle2, XCircle, Loader2, Download, Check, X,
 } from 'lucide-react'
 import {
   Dialog,
@@ -297,7 +297,7 @@ export function ImportReservationsDialog({
             <p className="text-sm text-muted-foreground">
               Selecione um arquivo <strong>.xlsx</strong> com as colunas:
             </p>
-            <p className="font-mono text-xs bg-muted rounded px-3 py-2 text-muted-foreground">
+            <p className="text-xs bg-muted rounded px-3 py-2 text-muted-foreground">
               Sala &nbsp;·&nbsp; Data &nbsp;·&nbsp; Início &nbsp;·&nbsp; Fim &nbsp;·&nbsp; Título &nbsp;·&nbsp; Responsável
             </p>
             <div
@@ -322,9 +322,9 @@ export function ImportReservationsDialog({
         {step === 'preview' && (
           <div className="space-y-3">
             <div className="flex items-center gap-4 text-sm">
-              <span className="text-emerald-600 font-medium">✓ {validCount} válida{validCount !== 1 ? 's' : ''}</span>
+              <span className="inline-flex items-center gap-1 text-positive font-medium"><Check className="h-4 w-4" />{validCount} válida{validCount !== 1 ? 's' : ''}</span>
               {invalidCount > 0 && (
-                <span className="text-destructive font-medium">✗ {invalidCount} com erro</span>
+                <span className="inline-flex items-center gap-1 text-destructive font-medium"><X className="h-4 w-4" />{invalidCount} com erro</span>
               )}
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border text-xs">
@@ -350,11 +350,11 @@ export function ImportReservationsDialog({
                       <td className="px-2 py-1.5 max-w-36 truncate">{row.titulo || '—'}</td>
                       <td className="px-2 py-1.5">
                         {row.erros.length > 0 ? (
-                          <span className="text-destructive" title={row.erros.join('; ')}>
-                            ✗ {row.erros[0]}
+                          <span className="inline-flex items-center gap-1 text-destructive" title={row.erros.join('; ')}>
+                            <X className="h-3 w-3 shrink-0" />{row.erros[0]}
                           </span>
                         ) : (
-                          <span className="text-emerald-600">✓ ok</span>
+                          <span className="inline-flex items-center gap-1 text-positive"><Check className="h-3 w-3" />ok</span>
                         )}
                       </td>
                     </tr>
@@ -370,7 +370,7 @@ export function ImportReservationsDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-4 text-sm">
               {doneOk > 0 && (
-                <span className="text-emerald-600 font-medium flex items-center gap-1.5">
+                <span className="text-positive font-medium flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4" />
                   {doneOk} importada{doneOk !== 1 ? 's' : ''} com sucesso
                 </span>
@@ -399,7 +399,7 @@ export function ImportReservationsDialog({
                       <td className="px-2 py-1.5">{row.sala_nome}</td>
                       <td className="px-2 py-1.5">
                         {row.status === 'ok' && (
-                          <span className="text-emerald-600 flex items-center gap-1">
+                          <span className="text-positive flex items-center gap-1">
                             <CheckCircle2 className="h-3 w-3" /> OK
                           </span>
                         )}
@@ -407,8 +407,8 @@ export function ImportReservationsDialog({
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                         )}
                         {row.status === 'erro' && (
-                          <span className="text-destructive" title={row.mensagem}>
-                            ✗ {row.mensagem}
+                          <span className="inline-flex items-center gap-1 text-destructive" title={row.mensagem}>
+                            <X className="h-3 w-3 shrink-0" />{row.mensagem}
                           </span>
                         )}
                       </td>

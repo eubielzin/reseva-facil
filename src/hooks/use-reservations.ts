@@ -7,6 +7,7 @@ import {
   updateReservation,
   deleteReservation,
   fetchDashboard,
+  fetchOcupacao,
 } from '@/services/reservations'
 import type { ReservationFormValues } from '@/schemas/reservation'
 
@@ -17,13 +18,12 @@ export function useReservations(salaId?: string) {
   })
 }
 
-export function useRoomSchedule(salaId?: string, data?: string) {
+/** Horários ocupados de um dia (de todos os usuários), opcionalmente de uma sala só. */
+export function useOcupacao(data?: string, salaId?: string, options?: { requireSala?: boolean }) {
   return useQuery({
-    queryKey: queryKeys.reservations.all(salaId),
-    queryFn: () => fetchReservations(salaId),
-    enabled: !!salaId,
-    select: (reservations) =>
-      data ? reservations.filter((r) => r.data === data) : [],
+    queryKey: queryKeys.reservations.ocupacao(data, salaId),
+    queryFn: () => fetchOcupacao(data as string, salaId),
+    enabled: !!data && (!options?.requireSala || !!salaId),
   })
 }
 

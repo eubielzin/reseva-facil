@@ -4,7 +4,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import { Providers } from '@/components/providers'
 
-const geist = Geist({ subsets: ['latin'] })
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
   title: 'ReservaFácil — Gerenciamento de Salas',
@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className="h-full">
-      <body suppressHydrationWarning className={`${geist.className} h-full antialiased bg-background text-foreground`}>
+    <html lang="pt-BR" className={`${geist.variable} h-full`}>
+      <body suppressHydrationWarning className={`${geist.className} h-full antialiased bg-ground text-foreground`}>
         <ClerkProvider>
           <Providers>
             {children}

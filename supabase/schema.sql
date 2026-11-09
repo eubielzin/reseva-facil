@@ -49,6 +49,7 @@ create table if not exists reservas (
 -- Migration for existing databases:
 -- ALTER TABLE reservas ADD COLUMN IF NOT EXISTS nome_empresa varchar(150);
 -- ALTER TABLE reservas ADD COLUMN IF NOT EXISTS nivel_evento varchar(5);
+-- ALTER TABLE reservas ADD COLUMN IF NOT EXISTS criado_por varchar(64); -- id do usuário no Clerk (V4)
 
 -- ============================================================
 -- INDEXES

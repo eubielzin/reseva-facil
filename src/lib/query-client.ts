@@ -17,6 +17,8 @@ export const queryKeys = {
   reservations: {
     all: (salaId?: string) => ['reservations', { salaId }] as const,
     detail: (id: string) => ['reservations', id] as const,
+    // Sob o prefixo 'reservations': criar/editar/excluir reserva já invalida a ocupação
+    ocupacao: (data?: string, salaId?: string) => ['reservations', 'ocupacao', { data, salaId }] as const,
   },
   dashboard: ['dashboard'] as const,
 }

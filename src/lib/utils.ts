@@ -39,12 +39,3 @@ export function statusLabel(status: ReservationStatus): string {
   }
   return labels[status]
 }
-
-export function statusVariant(status: ReservationStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const variants: Record<ReservationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    em_andamento: 'default',
-    proxima: 'secondary',
-    encerrada: 'outline',
-  }
-  return variants[status]
-}

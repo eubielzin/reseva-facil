@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans), system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -23,6 +23,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-ground: var(--ground);
+  --color-booked: var(--booked);
+  --color-booked-soft: var(--booked-soft);
+  --color-rule: var(--rule);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-pill-warning: var(--pill-warning-bg);
+  --color-pill-negative: var(--pill-negative-bg);
+  --color-pill-negative-ink: var(--pill-negative-ink);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -49,38 +58,51 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Estilo "achromatic ledger": interface em tinta neutra; o único matiz
+     (--booked) marca as reservas, o dado principal do produto. */
+  --ground: #f2f4f7; /* chão da página; cartões, campos e botões ficam em branco */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #141414;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e5e5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #eeeeee;
+  --muted-foreground: #6b6b6b;
+  --accent: #eeeeee;
+  --accent-foreground: #0a0a0a;
+  --destructive: #c4242a;
+  --border: #e6e6e6;
+  --input: #d4d4d4;
+  --ring: #8a8a8a;
+  --chart-1: #141414;
+  --chart-2: #8a8a8a;
+  --chart-3: #1d5fbf;
+  --chart-4: #d4d4d4;
+  --chart-5: #eeeeee;
+  --radius: 0.375rem;
+  --sidebar: #f2f4f7;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #141414;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e4e7ec;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #8a8a8a;
+
+  /* Dados */
+  --booked: #1d5fbf;
+  --booked-soft: #e8eff9;
+  --rule: #f0f0f0;
+  --positive: #2e7d32;
+  --warning: #92400e;
+  --pill-warning-bg: #fffbeb;
+  --pill-negative-bg: #ffedea;
+  --pill-negative-ink: #831c1e;
 }
 
 .dark {
@@ -115,6 +137,15 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --ground: oklch(0.145 0 0);
+  --booked: #5b8fe0;
+  --booked-soft: #16233a;
+  --rule: #161616;
+  --positive: #3fc07a;
+  --warning: #f0b45a;
+  --pill-warning-bg: #2a2214;
+  --pill-negative-bg: #2c1a20;
+  --pill-negative-ink: #e5566f;
 }
 
 @layer base {
@@ -122,9 +153,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-ground text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  /* Algarismos tabulares em todo o app: horários e contagens alinham coluna a coluna */
+  body {
+    font-variant-numeric: tabular-nums;
   }
 }

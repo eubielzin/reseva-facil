@@ -1,58 +1,47 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { CalendarDays } from 'lucide-react'
-import { cn, formatDate, formatTime } from '@/lib/utils'
+import { format, isToday, isTomorrow, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { formatTime } from '@/lib/utils'
+import { NivelDot } from '@/features/reservations/components/nivel-evento'
 import type { ReservationWithRoom } from '@/types'
 
-const NIVEL_DOT_CLASS: Record<string, string> = {
-  baixa: 'bg-emerald-500',
-  media: 'bg-amber-500',
-  alta: 'bg-red-500',
-  nenhum: 'bg-muted-foreground/40',
+function dayLabel(data: string): string {
+  const d = parseISO(data)
+  if (isToday(d)) return 'Hoje'
+  if (isTomorrow(d)) return 'Amanhã'
+  return format(d, 'EEE, dd/MM', { locale: ptBR })
 }
 
-interface UpcomingReservationsProps {
-  reservations: ReservationWithRoom[]
-}
+// Próximas reservas: duas linhas por item, data e horário alinhados à direita
+export function UpcomingReservations({ reservations }: { reservations: ReservationWithRoom[] }) {
+  if (reservations.length === 0) {
+    return (
+      <p className="rounded-md border border-dashed border-input px-4 py-3 text-sm text-muted-foreground">
+        Nenhuma reunião marcada daqui para a frente.
+      </p>
+    )
+  }
 
-export function UpcomingReservations({ reservations }: UpcomingReservationsProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Próximas reservas</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {reservations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">Nenhuma reserva futura encontrada.</p>
+    <ul>
+      {reservations.map((r) => (
+        <li key={r.id} className="flex items-center justify-between gap-4 border-t border-rule py-2.5 first:border-t-0 first:pt-0">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              {r.nivel_evento && <NivelDot nivel={r.nivel_evento} />}
+              <span className="truncate">{r.titulo}</span>
+            </p>
+            <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+              {r.sala.nome} · {r.participante_responsavel}
+            </p>
           </div>
-        ) : (
-          <ul className="space-y-3">
-            {reservations.map((r) => (
-              <li key={r.id} className="flex items-start justify-between gap-3 border-b pb-3 last:border-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate flex items-center gap-2">
-                    <span className={cn('inline-block h-2.5 w-2.5 rounded-full shrink-0', NIVEL_DOT_CLASS[r.nivel_evento ?? 'nenhum'])} />
-                    {r.titulo}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {r.sala.nome} · {r.participante_responsavel}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge variant="secondary" className="text-xs">
-                    {formatDate(r.data)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {formatTime(r.horario_inicio)} – {formatTime(r.horario_fim)}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+          <div className="shrink-0 text-right">
+            <p className="text-sm">{dayLabel(r.data)}</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {formatTime(r.horario_inicio)}–{formatTime(r.horario_fim)}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }

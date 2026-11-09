@@ -23,6 +23,15 @@ export interface Reservation {
   updated_at: string
 }
 
+/** Horário ocupado de uma sala, sem detalhes da reserva (GET /reservas/ocupacao). */
+export interface Ocupacao {
+  id: string
+  sala_id: string
+  data: string // YYYY-MM-DD
+  horario_inicio: string // HH:MM
+  horario_fim: string // HH:MM
+}
+
 export interface ReservationWithRoom extends Reservation {
   sala: Room
 }

@@ -19,7 +19,9 @@ Guia de consistência para qualquer agente ou contribuidor que gere código nest
 | Framework | Next.js (App Router) | 16.x |
 | Runtime | React | 19.x |
 | Linguagem | TypeScript | 5.x |
-| Banco | Supabase (PostgreSQL) | supabase-js v2 |
+| Back-end | API Java (`reseva-api`) — Spring Boot | 4.x / Java 21 |
+| Banco | Supabase (PostgreSQL), acessado só pela API Java | — |
+| Autenticação | Clerk (`@clerk/nextjs`) | 7.x |
 | Validação | Zod | **v4** |
 | Formulários | React Hook Form + @hookform/resolvers | 7.x / 5.x |
 | Estado servidor | TanStack Query | **v5** |
@@ -37,27 +39,40 @@ Guia de consistência para qualquer agente ou contribuidor que gere código nest
 ```
 src/
 ├── app/
-│   ├── api/           # Route Handlers — toda lógica de negócio fica aqui
 │   ├── salas/         # Páginas (Client Components com 'use client')
 │   └── reservas/
 ├── components/ui/     # Componentes Shadcn/UI — NÃO editar os existentes diretamente; novos podem ser adicionados
 ├── features/          # Componentes de domínio (rooms/, reservations/, dashboard/)
 ├── hooks/             # TanStack Query hooks (use-rooms.ts, use-reservations.ts)
-├── services/          # Funções fetch para os Route Handlers
-├── repositories/      # Queries Supabase (server-only)
-├── schemas/           # Schemas Zod compartilhados entre client e server
+├── services/          # Funções fetch para a API Java (sempre via apiFetch)
+├── schemas/           # Schemas Zod dos formulários (espelham as validações da API Java)
 ├── types/             # Interfaces TypeScript globais
-└── lib/               # Utilitários (supabase.ts, utils.ts, query-client.ts, business-rules.ts)
+└── lib/               # Utilitários (api-client.ts, utils.ts, query-client.ts, business-rules.ts)
 ```
 
-Ao criar um novo domínio, siga esse mesmo padrão: `features/<dominio>/components/`, `hooks/use-<dominio>.ts`, `services/<dominio>.ts`, `repositories/<dominio>.ts`, `schemas/<dominio>.ts`.
+Ao criar um novo domínio, siga esse mesmo padrão: `features/<dominio>/components/`, `hooks/use-<dominio>.ts`, `services/<dominio>.ts`, `schemas/<dominio>.ts` — e o endpoint correspondente na API Java.
+
+---
+
+## Back-end — API Java (`reseva-api`)
+
+O back-end é um projeto separado em Spring Boot (`../reseva-api`). **Não existem Route Handlers neste projeto** — não crie `src/app/api/`.
+
+- Toda validação e regra de negócio fica na API Java, nunca só no cliente. A validação Zod do front é apenas UX.
+- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `GET /dashboard` (admin).
+- JSON em **snake_case** (`sala_id`, `horario_inicio`, ...). Campos nulos são omitidos da resposta.
+- Erros: `{ error: string, details?: Record<string, string[]> }` com 401, 403, 404, 409 (regra de negócio) e 422 (validação).
+- Ao adicionar um campo: migration Flyway nova (`V<n>__descricao.sql`), entidade, `*Request`/`*Response` e o type/schema aqui no front.
+
+### Chamando a API
+- Services usam `apiFetch(path, init)` de `@/lib/api-client` — nunca `fetch` direto. Ele monta a URL com `NEXT_PUBLIC_API_URL` (padrão `http://localhost:8080`) e envia `Authorization: Bearer <JWT do Clerk>`.
+- O token vem do `getToken()` do `useAuth()`, registrado pelo `ApiAuthBridge` em `src/components/providers.tsx`. Services só funcionam no browser.
+- Papel de admin: a API lê o claim `metadata.role` do JWT (session token do Clerk deve expor `"metadata": "{{user.public_metadata}}"`). Criar/editar/excluir sala e editar/excluir reserva exigem `admin`; criar reserva exige só login.
 
 ---
 
 ## Next.js App Router
 
-- **Route Handlers** ficam em `src/app/api/**`. Use `NextRequest` e `NextResponse`.
-- Toda validação e regra de negócio deve estar no Route Handler, nunca só no cliente.
 - Páginas são Client Components (`'use client'`) pois usam estado e hooks.
 - Nunca use `getServerSideProps`, `getStaticProps` ou `pages/` — este projeto usa App Router.
 - Para Server Components, não use hooks de estado nem `useEffect`.
@@ -174,36 +189,41 @@ onChange={(e) => field.onChange(e.target.valueAsNumber)}
 
 ---
 
-## Supabase
+## Banco de dados
 
-- **Browser client**: `createBrowserClient()` — para Client Components.
-- **Server client**: `createServerClient()` — para Route Handlers e repositories. Nunca use o browser client em código server-side.
-- Todos os queries Supabase ficam em `src/repositories/`. Services (`src/services/`) apenas fazem fetch para os Route Handlers.
-- Operadores de comparação PostgREST: `.lte()`, `.gte()`, `.lt()`, `.gt()`, `.eq()`, `.neq()`.
+- O front **não acessa o Supabase**. Todo acesso ao banco passa pela API Java (JPA + Flyway).
+- O schema é versionado pelas migrations Flyway em `reseva-api/src/main/resources/db/migration/`. `supabase/schema.sql` é apenas referência.
 
 ---
 
 ## Regras de negócio (não alterar sem discussão)
 
+Implementadas na API Java: `BusinessRules.java` (funções puras) e `ReservaValidator.java` (ordem de aplicação). `src/lib/business-rules.ts` é um espelho para uso na UI — ao mudar uma regra, mude nos dois lados.
+
 ### Conflito de horário
-Usa desigualdade **não-estrita**: reservas que se encostam (ex.: 14:00–15:00 e 15:00–16:00) **são conflito**. Implementado com `.lte('horario_inicio', horarioFim).gte('horario_fim', horarioInicio)`.
+Usa desigualdade **não-estrita**: reservas que se encostam (ex.: 14:00–15:00 e 15:00–16:00) **são conflito**. Implementado em `ReservaRepository.findConflicts` com `horarioInicio <= :horarioFim AND horarioFim >= :horarioInicio`.
 
 ### Horário de funcionamento
-Por padrão, reservas só podem começar a partir das **07:00**. A validação de madrugada é feita **no servidor** (Route Handler), condicionalmente ao campo `sala.disponivel_madrugada`. O schema Zod de reserva **não** possui refine de hora mínima — a regra é por sala. O banco usa tipo `time`, que não suporta cruzar meia-noite — fim máximo recomendado: 23:59.
+Por padrão, reservas só podem começar a partir das **08:00** (`HORA_ABERTURA`). A validação de madrugada é feita **no servidor** (API Java), condicionalmente ao campo `sala.disponivel_madrugada`. O schema Zod de reserva **não** possui refine de hora mínima — a regra é por sala. O banco usa tipo `time`, que não suporta cruzar meia-noite — fim máximo recomendado: 23:59.
 
 ### Disponibilidade por sala
 Cada sala possui dois campos booleanos configuráveis pelo admin:
 
-- **`disponivel_madrugada`** (`boolean`, default `false`): se `false`, qualquer reserva com `horario_inicio < '07:00'` é rejeitada com HTTP 409. Se `true`, a sala aceita reservas a partir das 00:00. O `TimeSlotPicker` recebe prop `availableFrom='00:00'` quando a sala selecionada tem esse campo ativo.
+- **`disponivel_madrugada`** (`boolean`, default `false`): se `false`, qualquer reserva com `horario_inicio < '08:00'` é rejeitada com HTTP 409. Se `true`, a sala aceita reservas a partir das 00:00. O `TimeSlotPicker` recebe prop `availableFrom='00:00'` quando a sala selecionada tem esse campo ativo.
 - **`disponivel_fim_de_semana`** (`boolean`, default `false`): se `false`, reservas cujo campo `data` cai em sábado ou domingo são rejeitadas com HTTP 409. O calendário do formulário desabilita visualmente esses dias via `disabled={{ dayOfWeek: [0, 6] }}` do react-day-picker. Ao trocar de sala, um `useEffect` em `reservation-form.tsx` limpa o campo `data` automaticamente se a data selecionada for fim de semana e a nova sala não permitir. Dia da semana calculado como `new Date(data + 'T12:00:00').getDay()` (T12 evita problemas de timezone UTC).
 
 Ambas as regras são validadas no servidor **após** a validação de capacidade e **antes** da detecção de conflito.
+
+### Visibilidade das reservas
+Cada reserva guarda quem a criou (`criado_por` = claim `sub` do JWT do Clerk, gravado pela API no `POST`). Usuário comum só vê as próprias reservas em `GET /reservas` e `GET /reservas/{id}` (reserva de outro responde 404); admin vê todas. Reservas antigas, sem dono, só aparecem para o admin. Regra pura em `BusinessRules.podeVerReserva`.
+
+Para escolher horário livre (formulário, coluna "Agora" em Salas) use `GET /reservas/ocupacao` (hook `useOcupacao`): devolve os horários ocupados de **todos** os usuários, só com sala, data, início e fim — nunca use a lista de reservas para isso, porque o usuário comum não recebe as dos outros.
 
 ### Capacidade
 `quantidade_participantes > sala.capacidade` retorna HTTP 409. É bloqueio rígido, não aviso.
 
 ### Edição sem conflito consigo mesma
-Ao editar, passe `excludeId` para `findConflicts()` para excluir a própria reserva da verificação.
+Ao editar, `UpdateReservaUseCase` passa `excludeId` para `findConflicts()` para excluir a própria reserva da verificação.
 
 ---
 
@@ -227,7 +247,7 @@ Use `Popover` + `Calendar` do Shadcn. O `PopoverTrigger` NÃO usa `asChild` — 
 </PopoverTrigger>
 ```
 
-Armazene datas como string `'yyyy-MM-dd'` nos formulários e no banco. Nunca passe objetos `Date` para o Supabase.
+Armazene datas como string `'yyyy-MM-dd'` nos formulários e envie assim para a API. Horários como `'HH:mm'`. Nunca envie objetos `Date`.
 
 ---
 
@@ -242,15 +262,16 @@ Armazene datas como string `'yyyy-MM-dd'` nos formulários e no banco. Nunca pas
 
 ## Testes
 
-O projeto usa **Vitest 2.x** (compatível com Node 18+). Rode com `npm test`.
+- **Front**: **Vitest 2.x** (compatível com Node 18+). Rode com `npm test`. Testes em `src/lib/__tests__/business-rules.test.ts`.
+- **API Java**: JUnit 5. Rode com `./mvnw test` dentro de `reseva-api`. Testes em `src/test/java/.../rules/BusinessRulesTest.java`.
 
-As regras de negócio ficam em `src/lib/business-rules.ts` como funções puras sem dependências externas. Os testes ficam em `src/lib/__tests__/business-rules.test.ts`. Ao adicionar ou alterar uma regra de negócio:
+Ao adicionar ou alterar uma regra de negócio:
 
-1. Implemente a lógica pura em `business-rules.ts`.
-2. Use a função nos Route Handlers (`src/app/api/reservas/`).
-3. Adicione casos de teste correspondentes.
+1. Implemente a lógica pura em `BusinessRules.java` e aplique em `ReservaValidator.java`.
+2. Espelhe em `src/lib/business-rules.ts` se a UI precisar dela.
+3. Adicione casos de teste nos dois lados.
 
-Nunca teste lógica que depende de Supabase em testes unitários — mock ou integração separada.
+Nunca teste lógica que depende do banco em testes unitários — mock ou integração separada.
 
 ---
 

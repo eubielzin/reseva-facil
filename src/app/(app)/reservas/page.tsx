@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { format } from 'date-fns'
 import { type DateRange } from 'react-day-picker'
-import { Plus, CalendarDays, List, CalendarRange, Upload } from 'lucide-react'
+import { Plus, List, CalendarRange, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
@@ -13,6 +13,7 @@ import { ReservationsTable } from '@/features/reservations/components/reservatio
 import { ReservationsFilters } from '@/features/reservations/components/reservations-filters'
 import { ReservationDialog } from '@/features/reservations/components/reservation-dialog'
 import { ReservationsTimeline } from '@/features/reservations/components/reservations-timeline'
+import { NivelLegend } from '@/features/reservations/components/nivel-evento'
 import { ImportReservationsDialog } from '@/features/reservations/components/import-reservations-dialog'
 import { useReservations } from '@/hooks/use-reservations'
 import { useRooms } from '@/hooks/use-rooms'
@@ -64,53 +65,59 @@ export default function ReservasPage() {
 
   const hasFilters = selectedSalaId || dateRange || selectedStatus
 
+  const summary = useMemo(() => {
+    if (!reservations) return undefined
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const hoje = reservations.filter((r) => r.data === today).length
+    const emAndamento = reservations.filter((r) => getReservationStatus(r) === 'em_andamento').length
+    // Usuário comum recebe da API só as reservas que criou
+    const total = isAdmin
+      ? `${reservations.length} ${reservations.length === 1 ? 'reserva' : 'reservas'}`
+      : `${reservations.length} ${reservations.length === 1 ? 'reserva sua' : 'reservas suas'}`
+    return `${total} · ${hoje} hoje · ${emAndamento} em andamento`
+  }, [reservations, isAdmin])
+
   return (
     <div>
       <PageHeader
-        title="Reservas"
-        description="Gerencie as reservas de salas de reunião."
+        title={isAdmin ? 'Reservas' : 'Minhas reservas'}
+        description={summary}
         action={
           <div className="flex items-center gap-2">
-            {/* Toggle de visualização — apenas admin */}
+            {/* Toggle de visualização — apenas admin; ativo é um pill cinza neutro */}
             {isAdmin && (
-              <div className="flex rounded-md border border-input overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('lista')}
-                  className={cn(
-                    'px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors',
-                    viewMode === 'lista'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted text-muted-foreground'
-                  )}
-                >
-                  <List className="h-4 w-4" />
-                  <span className="hidden sm:inline">Lista</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('timeline')}
-                  className={cn(
-                    'px-3 py-1.5 text-sm flex items-center gap-1.5 border-l border-input transition-colors',
-                    viewMode === 'timeline'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted text-muted-foreground'
-                  )}
-                >
-                  <CalendarRange className="h-4 w-4" />
-                  <span className="hidden sm:inline">Timeline</span>
-                </button>
+              <div role="group" aria-label="Visualização" className="flex h-9 items-center gap-0.5 rounded-md bg-muted p-0.5">
+                {([
+                  { mode: 'lista', label: 'Lista', icon: List },
+                  { mode: 'timeline', label: 'Semana', icon: CalendarRange },
+                ] as const).map(({ mode, label, icon: Icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={viewMode === mode}
+                    onClick={() => setViewMode(mode)}
+                    className={cn(
+                      'flex h-8 items-center gap-1.5 rounded-[5px] px-3 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                      viewMode === mode
+                        ? 'bg-card text-foreground font-medium'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={1.75} />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
               </div>
             )}
 
             {isAdmin && (
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importar planilha
+              <Button variant="outline" size="lg" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Importar planilha</span>
               </Button>
             )}
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button size="lg" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
               Nova reserva
             </Button>
           </div>
@@ -144,16 +151,19 @@ export default function ReservasPage() {
 
           {!isLoading && !isError && filteredReservations.length === 0 && (
             <EmptyState
-              icon={CalendarDays}
-              title="Nenhuma reserva encontrada"
+              title={
+                hasFilters
+                  ? 'Nenhuma reserva com esses filtros'
+                  : isAdmin ? 'Nenhuma reserva ainda' : 'Você ainda não tem reservas'
+              }
               description={
                 hasFilters
-                  ? 'Nenhuma reserva corresponde aos filtros selecionados. Tente outros critérios.'
-                  : 'Crie sua primeira reserva para começar.'
+                  ? 'Troque a sala, o período ou o status para ver outras reservas.'
+                  : 'Reserve uma sala para a sua próxima reunião.'
               }
               action={
-                <Button onClick={() => setCreateOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button size="lg" onClick={() => setCreateOpen(true)}>
+                  <Plus className="h-4 w-4" />
                   Nova reserva
                 </Button>
               }
@@ -161,7 +171,19 @@ export default function ReservasPage() {
           )}
 
           {!isLoading && !isError && filteredReservations.length > 0 && (
-            <ReservationsTable reservations={filteredReservations} />
+            <div className="space-y-3">
+              <ReservationsTable reservations={filteredReservations} />
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                <p className="text-xs text-muted-foreground">
+                  {filteredReservations.length === reservations?.length
+                    ? `${filteredReservations.length} ${filteredReservations.length === 1 ? 'reserva' : 'reservas'}`
+                    : `${filteredReservations.length} de ${reservations?.length ?? 0} reservas`}
+                </p>
+                <NivelLegend
+                  niveis={filteredReservations.flatMap((r) => (r.nivel_evento ? [r.nivel_evento] : []))}
+                />
+              </div>
+            </div>
           )}
         </>
       )}

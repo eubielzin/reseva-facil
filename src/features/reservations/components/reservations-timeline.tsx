@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { getReservationStatus } from '@/lib/utils'
 import { useReservations } from '@/hooks/use-reservations'
 import { TableSkeleton } from '@/components/loading-state'
+import { NivelDot, NivelPill } from './nivel-evento'
 import type { ReservationWithRoom } from '@/types'
 
 const START_HOUR = 0
@@ -24,7 +25,7 @@ const END_HOUR = 23
 const HOUR_HEIGHT = 56
 const TOTAL_HEIGHT = (END_HOUR - START_HOUR) * HOUR_HEIGHT
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
-const DAY_LABELS = ['DOM.', 'SEG.', 'TER.', 'QUA.', 'QUI.', 'SEX.', 'SÁB.']
+const DAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 
 function timeToMinutes(time: string): number {
   const [h, m] = time.slice(0, 5).split(':').map(Number)
@@ -55,9 +56,21 @@ function computeLayout(
     if (!placed) clusters.push([r])
   }
 
+  // Dentro de cada grupo, cada reserva ocupa a primeira coluna livre;
+  // a largura é dividida pelo número de colunas do grupo, não pelo de reservas
   for (const cluster of clusters) {
-    const n = cluster.length
-    cluster.forEach((r, i) => {
+    const colEnds: number[] = []
+    const colOf = new Map<string, number>()
+    for (const r of cluster) {
+      const start = timeToMinutes(r.horario_inicio)
+      let col = colEnds.findIndex((end) => end <= start)
+      if (col === -1) col = colEnds.length
+      colEnds[col] = timeToMinutes(r.horario_fim)
+      colOf.set(r.id, col)
+    }
+    const n = colEnds.length
+    cluster.forEach((r) => {
+      const i = colOf.get(r.id) ?? 0
       result.set(r.id, { left: (i / n) * 100, width: (1 / n) * 100 })
     })
   }
@@ -65,28 +78,15 @@ function computeLayout(
   return result
 }
 
+// O matiz das reservas marca o que ainda vai acontecer; encerradas ficam em cinza
 function blockColors(r: ReservationWithRoom): string {
   const status = getReservationStatus(r)
-  if (status === 'em_andamento') return 'bg-emerald-500 border-emerald-600 text-white'
-  if (status === 'proxima') return 'bg-blue-500 border-blue-600 text-white'
-  return 'bg-slate-100 border-slate-300 text-slate-500'
+  if (status === 'em_andamento') return 'bg-booked border-booked text-white'
+  if (status === 'proxima') return 'bg-booked-soft border-transparent border-l-booked border-l-[3px] text-foreground'
+  return 'bg-muted border-transparent text-muted-foreground'
 }
 
 const cap = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
-
-const NIVEL_LABELS: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
-
-function nivelBadgeClass(nivel: string): string {
-  if (nivel === 'baixa') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-  if (nivel === 'media') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-}
-
-function nivelDotClass(nivel: string): string {
-  if (nivel === 'baixa') return 'bg-emerald-300'
-  if (nivel === 'media') return 'bg-amber-300'
-  return 'bg-red-300'
-}
 
 export function ReservationsTimeline() {
   const [baseDate, setBaseDate] = useState(() => new Date())
@@ -130,9 +130,9 @@ export function ReservationsTimeline() {
   if (isLoading) return <TableSkeleton rows={6} cols={7} />
 
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border bg-card overflow-hidden">
       {/* Barra de navegação */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background">
+      <div className="flex items-center gap-3 px-4 py-3 border-b">
         <Button variant="outline" size="sm" onClick={() => setBaseDate(new Date())}>
           Hoje
         </Button>
@@ -179,24 +179,24 @@ export function ReservationsTimeline() {
 
       {/* Grade — scroll horizontal engloba cabeçalho + conteúdo juntos */}
       <div className="overflow-x-auto">
-        <div style={{ minWidth: 56 + 7 * 120 }}>
+        <div style={{ minWidth: 56 + 7 * 88 }}>
 
           {/* Cabeçalho dos dias — fica acima do div com overflow-y, então nunca some */}
-          <div className="flex border-b bg-background">
+          <div className="flex border-b">
             <div className="w-14 shrink-0 border-r" />
             {days.map((day) => {
               const today = isToday(day)
               return (
                 <div
                   key={format(day, 'yyyy-MM-dd')}
-                  className="flex-1 min-w-30 border-r last:border-r-0 flex flex-col items-center justify-center py-2 gap-0.5"
+                  className="flex-1 min-w-22 border-r last:border-r-0 flex flex-col items-center justify-center py-2 gap-0.5"
                 >
-                  <span className="text-[11px] font-medium text-muted-foreground tracking-wider">
+                  <span className="text-xs text-muted-foreground">
                     {DAY_LABELS[day.getDay()]}
                   </span>
                   <div className={cn(
                     'h-8 w-8 flex items-center justify-center rounded-full text-sm font-semibold',
-                    today ? 'bg-blue-600 text-white' : 'text-foreground'
+                    today ? 'bg-foreground text-background' : 'text-foreground'
                   )}>
                     {format(day, 'd')}
                   </div>
@@ -211,7 +211,7 @@ export function ReservationsTimeline() {
 
               {/* Coluna de horas — sticky left para scroll horizontal */}
               <div
-                className="w-14 shrink-0 sticky left-0 z-10 bg-background border-r overflow-hidden"
+                className="w-14 shrink-0 sticky left-0 z-10 bg-card border-r overflow-hidden"
                 style={{ height: TOTAL_HEIGHT }}
               >
                 {HOURS.map((h, i) => (
@@ -220,7 +220,7 @@ export function ReservationsTimeline() {
                     className="absolute w-full pr-2 flex justify-end"
                     style={{ top: i === 0 ? 4 : (h - START_HOUR) * HOUR_HEIGHT - 8 }}
                   >
-                    <span className="text-[11px] text-muted-foreground tabular-nums select-none">
+                    <span className="text-[11px] text-muted-foreground select-none">
                       {String(h).padStart(2, '0')}:00
                     </span>
                   </div>
@@ -233,13 +233,14 @@ export function ReservationsTimeline() {
                 const dayReservations = byDay[dateStr] ?? []
                 const layout = computeLayout(dayReservations)
                 const today = isToday(day)
+                const weekend = day.getDay() === 0 || day.getDay() === 6
 
                 return (
                   <div
                     key={dateStr}
                     className={cn(
-                      'flex-1 min-w-30 border-r last:border-r-0 relative',
-                      today && 'bg-blue-50/40'
+                      'flex-1 min-w-22 border-r last:border-r-0 relative',
+                      weekend && 'bg-muted/40'
                     )}
                     style={{ height: TOTAL_HEIGHT }}
                   >
@@ -258,8 +259,8 @@ export function ReservationsTimeline() {
                     {today && showNowLine && (
                       <div className="absolute w-full z-30 pointer-events-none" style={{ top: nowTop }}>
                         <div className="relative flex items-center">
-                          <div className="absolute -left-1 h-2.5 w-2.5 rounded-full bg-red-500 -translate-y-1/2 z-10" />
-                          <div className="w-full border-t-2 border-red-500" />
+                          <div className="absolute -left-1 h-2 w-2 rounded-full bg-booked -translate-y-1/2 z-10" />
+                          <div className="w-full border-t border-booked" />
                         </div>
                       </div>
                     )}
@@ -276,7 +277,7 @@ export function ReservationsTimeline() {
                         <div
                           key={r.id}
                           className={cn(
-                            'absolute rounded-md border px-1.5 py-0.5 overflow-hidden z-20 select-none cursor-pointer transition-opacity hover:opacity-85',
+                            'absolute rounded-[4px] border px-1.5 py-0.5 overflow-hidden z-20 select-none cursor-pointer transition-[filter] hover:brightness-95',
                             blockColors(r)
                           )}
                           style={{
@@ -288,16 +289,14 @@ export function ReservationsTimeline() {
                           onClick={() => setSelectedReservation(r)}
                         >
                           <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
-                            {r.nivel_evento && (
-                              <span className={cn('inline-block h-1.5 w-1.5 rounded-full shrink-0', nivelDotClass(r.nivel_evento))} />
-                            )}
+                            {r.nivel_evento && <NivelDot nivel={r.nivel_evento} className="h-1.5 w-1.5" />}
                             {r.titulo}
                           </p>
                           {height >= 34 && (
-                            <p className="text-[10px] leading-tight opacity-90 truncate">{r.sala.nome}</p>
+                            <p className="text-[11px] leading-tight opacity-90 truncate">{r.sala.nome}</p>
                           )}
                           {height >= 50 && (
-                            <p className="text-[10px] leading-tight opacity-75">
+                            <p className="text-[11px] leading-tight opacity-80">
                               {r.horario_inicio.slice(0, 5)}–{r.horario_fim.slice(0, 5)}
                             </p>
                           )}
@@ -312,19 +311,23 @@ export function ReservationsTimeline() {
         </div>
       </div>
 
-      {/* Legenda */}
-      <div className="flex items-center gap-5 px-4 py-2.5 border-t text-xs text-muted-foreground">
+      {/* Legenda — cada amostra é a própria marca do bloco, em escala menor */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-4 py-2.5 border-t text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded border border-emerald-600 bg-emerald-500" />
+          <div className="h-3 w-4 rounded-[3px] bg-booked" />
           <span>Em andamento</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded border border-blue-600 bg-blue-500" />
+          <div className="h-3 w-4 rounded-[3px] bg-booked-soft border-l-[3px] border-booked" />
           <span>Próxima</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded border border-slate-300 bg-slate-100" />
+          <div className="h-3 w-4 rounded-[3px] bg-muted" />
           <span>Encerrada</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-4 rounded-[3px] bg-muted/40 border" />
+          <span>Fim de semana</span>
         </div>
       </div>
 
@@ -342,11 +345,8 @@ export function ReservationsTimeline() {
                     {selectedReservation.titulo}
                   </DialogTitle>
                   {selectedReservation.nivel_evento && (
-                    <span className={cn(
-                      'mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
-                      nivelBadgeClass(selectedReservation.nivel_evento)
-                    )}>
-                      {NIVEL_LABELS[selectedReservation.nivel_evento]}
+                    <span className="mt-0.5">
+                      <NivelPill nivel={selectedReservation.nivel_evento} />
                     </span>
                   )}
                 </div>
@@ -370,7 +370,7 @@ export function ReservationsTimeline() {
                   ['Responsável', selectedReservation.participante_responsavel],
                   [
                     'Participantes',
-                    String(selectedReservation.quantidade_participantes),
+                    `${selectedReservation.quantidade_participantes} de ${selectedReservation.sala.capacidade} lugares`,
                   ],
                   ...(selectedReservation.nome_empresa
                     ? [['Empresa', selectedReservation.nome_empresa]]

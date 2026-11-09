@@ -1,14 +1,14 @@
 interface PageHeaderProps {
   title: string
-  description?: string
+  description?: React.ReactNode
   action?: React.ReactNode
 }
 
 export function PageHeader({ title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3 mb-6">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {description && (
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}

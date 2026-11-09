@@ -66,7 +66,7 @@ export function ReservationsFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3 mb-4">
+    <div className="grid grid-cols-2 items-end gap-3 mb-4 sm:flex sm:flex-wrap">
       {/* Filtro por sala */}
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Sala</span>
@@ -74,7 +74,7 @@ export function ReservationsFilters({
           value={salaValue}
           onValueChange={(v) => onSalaChange(v === ALL ? '' : (v ?? ''))}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <span className={cn('flex-1 truncate text-left text-sm', !selectedRoom && 'text-muted-foreground')}>
               {selectedRoom ? selectedRoom.nome : 'Todas as salas'}
             </span>
@@ -97,7 +97,7 @@ export function ReservationsFilters({
           <PopoverTrigger
             className={cn(
               buttonVariants({ variant: 'outline' }),
-              'h-8 w-[220px] justify-start text-left font-normal text-sm',
+              'h-8 w-full sm:w-[220px] justify-start text-left font-normal text-sm',
               !dateRange && 'text-muted-foreground'
             )}
           >
@@ -136,7 +136,7 @@ export function ReservationsFilters({
           value={statusValue}
           onValueChange={(v) => onStatusChange(v === ALL ? '' : (v ?? ''))}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <span className={cn('flex-1 truncate text-left text-sm', !selectedStatus && 'text-muted-foreground')}>
               {selectedStatusLabel ?? 'Todos'}
             </span>
@@ -156,7 +156,7 @@ export function ReservationsFilters({
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Ordenação</span>
         <Select value={sortOrder} onValueChange={(v) => onSortChange((v ?? 'asc') as SortOrder)}>
-          <SelectTrigger className="w-[190px]">
+          <SelectTrigger className="w-full sm:w-[190px]">
             <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="flex-1 truncate text-left text-sm">
               {sortOrder === 'asc' ? 'Mais antigo primeiro' : 'Mais recente primeiro'}

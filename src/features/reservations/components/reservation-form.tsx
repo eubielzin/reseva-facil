@@ -34,17 +34,12 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
-import { useRoomSchedule } from '@/hooks/use-reservations'
+import { useOcupacao } from '@/hooks/use-reservations'
 import { TimeSlotPicker } from './time-slot-picker'
+import { NivelDot, NIVEL_LABELS } from './nivel-evento'
 import type { ReservationWithRoom, Room } from '@/types'
 
 const CICLO_NIVEIS = ['baixa', 'media', 'alta'] as const
-const NIVEL_LABELS: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
-const NIVEL_DOT_CLASS: Record<string, string> = {
-  baixa: 'bg-emerald-500',
-  media: 'bg-amber-500',
-  alta: 'bg-red-500',
-}
 
 interface ReservationFormProps {
   rooms: Room[]
@@ -88,10 +83,11 @@ export function ReservationForm({
   const isEmpresa = form.watch('is_empresa')
   const selectedRoom = rooms.find((r) => r.id === selectedSalaId)
 
-  const { data: scheduleReservations = [] } = useRoomSchedule(selectedSalaId || undefined, selectedData)
+  // Ocupação vem de todos os usuários (sem detalhes), mesmo que o usuário só veja as próprias reservas
+  const { data: ocupacao = [] } = useOcupacao(selectedData || undefined, selectedSalaId || undefined, { requireSala: true })
   const bookedIntervals = useMemo(
-    () => scheduleReservations.filter((r) => r.id !== defaultValues?.id),
-    [scheduleReservations, defaultValues?.id]
+    () => ocupacao.filter((o) => o.id !== defaultValues?.id),
+    [ocupacao, defaultValues?.id]
   )
 
   const availableFrom = selectedRoom?.disponivel_madrugada ? '00:00' : '08:00'
@@ -196,7 +192,7 @@ export function ReservationForm({
                 <FormLabel>Nome da empresa</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Ex: Acme Ltda."
+                    placeholder="Ex: Construtora Horizonte Ltda."
                     value={field.value ?? ''}
                     onChange={(e) => field.onChange(e.target.value || null)}
                   />
@@ -250,7 +246,7 @@ export function ReservationForm({
                         className="gap-1.5"
                         onClick={() => field.onChange(active ? null : nivel)}
                       >
-                        <span className={cn('h-2 w-2 rounded-full shrink-0', NIVEL_DOT_CLASS[nivel])} />
+                        <NivelDot nivel={nivel} />
                         {NIVEL_LABELS[nivel]}
                       </Button>
                     )
