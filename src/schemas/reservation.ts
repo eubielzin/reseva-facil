@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { eventoSchema } from './evento'
 
 const timeRegex = /^([0-1]\d|2[0-3]):([0-5]\d)$/
 
@@ -43,6 +44,8 @@ const reservaBase = z.object({
     .nullable()
     .optional(),
   nivel_evento: z.enum(['baixa', 'media', 'alta']).nullable().optional(),
+  // Nulo = reserva só de sala, sem ingressos
+  evento: eventoSchema.nullable().optional(),
 })
 
 // Schema usado pelos Route Handlers (não inclui is_empresa)
@@ -58,9 +61,19 @@ export const updateReservationSchema = reservationSchema
 
 export type ReservationFormValues = z.infer<typeof reservationSchema>
 
-// Schema usado apenas no formulário (inclui is_empresa para lógica condicional)
+// Schema usado apenas no formulário (inclui is_empresa e tem_evento para lógica condicional).
+// evento fica sempre preenchido no estado do formulário; só é validado com tem_evento marcado.
 export const reservationFormSchema = reservaBase
-  .extend({ is_empresa: z.boolean() })
+  .extend({
+    is_empresa: z.boolean(),
+    tem_evento: z.boolean(),
+    evento: z.object({
+      visibilidade: z.enum(['publico', 'privado']),
+      descricao: z.string(),
+      limite_ingressos: z.number(),
+      tags: z.array(z.string()),
+    }),
+  })
   .refine((d) => d.horario_fim > d.horario_inicio, {
     message: 'Horário de fim deve ser maior que o horário de início',
     path: ['horario_fim'],
@@ -72,6 +85,14 @@ export const reservationFormSchema = reservaBase
         message: 'Nome da empresa deve ter pelo menos 2 caracteres',
         path: ['nome_empresa'],
       })
+    }
+    if (d.tem_evento) {
+      const evento = eventoSchema.safeParse(d.evento)
+      if (!evento.success) {
+        for (const issue of evento.error.issues) {
+          ctx.addIssue({ code: 'custom', message: issue.message, path: ['evento', ...issue.path] })
+        }
+      }
     }
   })
 

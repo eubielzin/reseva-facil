@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { RecusarDialog } from '@/features/reservations/components/recusar-dialog'
 import { NivelDot } from '@/features/reservations/components/nivel-evento'
+import { EventoSelo } from '@/features/eventos/components/evento-selo'
 import { useMudarStatusReserva } from '@/hooks/use-reservations'
 import { cn, formatDate, formatTime } from '@/lib/utils'
 import type { ReservationWithRoom } from '@/types'
@@ -71,6 +72,16 @@ export function PedidoLinha({ reserva: r, ordem, outros, modo, destaque, mostrar
           {mostrarQuando &&
             ` · ${r.sala.nome}, ${formatDate(r.data)} ${formatTime(r.horario_inicio)}–${formatTime(r.horario_fim)}`}
         </p>
+        {/* O admin vê o que vai para a vitrine antes de aprovar */}
+        {r.evento && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <EventoSelo evento={r.evento} />
+            <span>
+              {r.evento.visibilidade === 'publico' ? 'Público, vai para a vitrine' : 'Privado, só por link'} · Tags:{' '}
+              {r.evento.tags.join(', ')}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

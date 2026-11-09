@@ -12,6 +12,7 @@ import { ReservationStatusBadge } from './reservation-status-badge'
 import { ApprovalStatusBadge, OrdemPedido } from './approval-status-badge'
 import { ReservationActions } from './reservation-actions'
 import { NivelDot } from './nivel-evento'
+import { EventoSelo } from '@/features/eventos/components/evento-selo'
 import { cn, formatDate, formatTime, getReservationStatus } from '@/lib/utils'
 import type { ReservationWithRoom } from '@/types'
 
@@ -66,6 +67,11 @@ export function ReservationsTable({ reservations, destaqueId }: ReservationsTabl
                   {r.status !== 'aprovada' && (
                     <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
                       <ApprovalStatusBadge status={r.status} />
+                    </p>
+                  )}
+                  {r.evento && (
+                    <p className="mt-1">
+                      <EventoSelo evento={r.evento} />
                     </p>
                   )}
                   {r.status === 'recusada' && r.motivo_recusa && (

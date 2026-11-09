@@ -34,6 +34,9 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
+import { EventoFields } from '@/features/eventos/components/evento-fields'
+import { TAGS_SUGERIDAS } from '@/lib/business-rules'
+import type { EventoFormValues } from '@/schemas/evento'
 import { useOcupacao } from '@/hooks/use-reservations'
 import { TimeSlotPicker } from './time-slot-picker'
 import { NivelDot, NIVEL_LABELS } from './nivel-evento'
@@ -50,6 +53,17 @@ interface ReservationFormProps {
   serverError?: string
   /** Texto do botão de envio (ex.: "Enviar pedido" para organizador) */
   submitLabel?: string
+}
+
+// Estado do evento no formulário: sempre preenchido; só vai para a API com tem_evento marcado
+function eventoInicial(defaultValues?: ReservationWithRoom): EventoFormValues {
+  const e = defaultValues?.evento
+  return {
+    visibilidade: e?.visibilidade ?? 'publico',
+    descricao: e?.descricao ?? '',
+    limite_ingressos: e?.limite_ingressos ?? defaultValues?.quantidade_participantes ?? 1,
+    tags: e?.tags ?? [...TAGS_SUGERIDAS],
+  }
 }
 
 export function ReservationForm({
@@ -74,6 +88,8 @@ export function ReservationForm({
       is_empresa: !!defaultValues?.nome_empresa,
       nome_empresa: defaultValues?.nome_empresa ?? null,
       nivel_evento: defaultValues?.nivel_evento ?? null,
+      tem_evento: !!defaultValues?.evento,
+      evento: eventoInicial(defaultValues),
     },
   })
 
@@ -84,6 +100,7 @@ export function ReservationForm({
   const horarioInicio = form.watch('horario_inicio')
   const horarioFim = form.watch('horario_fim')
   const isEmpresa = form.watch('is_empresa')
+  const temEvento = form.watch('tem_evento')
   const selectedRoom = rooms.find((r) => r.id === selectedSalaId)
 
   // Ocupação vem de todos os usuários (sem detalhes), mesmo que o usuário só veja as próprias reservas
@@ -123,16 +140,21 @@ export function ReservationForm({
         is_empresa: !!defaultValues.nome_empresa,
         nome_empresa: defaultValues.nome_empresa ?? null,
         nivel_evento: defaultValues.nivel_evento ?? null,
+        tem_evento: !!defaultValues.evento,
+        evento: eventoInicial(defaultValues),
       })
     }
   }, [defaultValues, form])
 
   function handleFormSubmit(values: ReservationFormInternalValues) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { is_empresa, ...rest } = values
+    const { is_empresa, tem_evento, evento, ...rest } = values
     onSubmit({
       ...rest,
       nome_empresa: is_empresa ? (rest.nome_empresa ?? null) : null,
+      evento: tem_evento
+        ? { ...evento, descricao: evento.descricao.trim() }
+        : null,
     })
   }
 
@@ -364,6 +386,45 @@ export function ReservationForm({
               {form.formState.errors.horario_inicio?.message ??
                 form.formState.errors.horario_fim?.message}
             </p>
+          )}
+        </div>
+
+        <div className="rounded-lg border px-4 py-3 space-y-4">
+          <FormField
+            control={form.control}
+            name="tem_evento"
+            render={({ field }) => (
+              <FormItem className="flex items-start gap-3">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked)
+                      // Ao abrir o evento, o limite parte da quantidade de participantes
+                      const qtd = form.getValues('quantidade_participantes')
+                      if (checked && !defaultValues?.evento && Number.isFinite(qtd) && qtd > 0) {
+                        form.setValue('evento.limite_ingressos', qtd)
+                      }
+                    }}
+                    disabled={(defaultValues?.evento?.ingressos_emitidos ?? 0) > 0}
+                  />
+                </FormControl>
+                <div className="space-y-0.5">
+                  <FormLabel className="font-normal cursor-pointer">Evento com ingressos</FormLabel>
+                  <p className="text-xs text-muted-foreground">
+                    {(defaultValues?.evento?.ingressos_emitidos ?? 0) > 0
+                      ? 'Já há ingressos emitidos; o evento não pode ser removido.'
+                      : 'Participantes pegam ingresso com QR code. Só abre depois da aprovação.'}
+                  </p>
+                </div>
+              </FormItem>
+            )}
+          />
+          {temEvento && (
+            <EventoFields
+              capacidadeSala={selectedRoom?.capacidade}
+              ingressosEmitidos={defaultValues?.evento?.ingressos_emitidos}
+            />
           )}
         </div>
 

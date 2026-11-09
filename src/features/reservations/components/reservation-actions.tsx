@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Ban, Check, MoreHorizontal, Pencil, Trash2, Undo2, X } from 'lucide-react'
+import { Ban, Check, Link2, MoreHorizontal, Pencil, RefreshCw, Ticket, Trash2, Undo2, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { buttonVariants } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -13,6 +14,9 @@ import {
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ReservationDialog } from './reservation-dialog'
 import { RecusarDialog } from './recusar-dialog'
+import { EditarEventoDialog } from '@/features/eventos/components/editar-evento-dialog'
+import { useNovoConvite } from '@/hooks/use-eventos'
+import { linkConvite } from '@/services/eventos'
 import { useDeleteReservation, useMudarStatusReserva } from '@/hooks/use-reservations'
 import { useRole } from '@/hooks/use-role'
 import { podeEditarReserva, proximoStatus } from '@/lib/business-rules'
@@ -33,8 +37,11 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [recusarOpen, setRecusarOpen] = useState(false)
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null)
+  const [eventoOpen, setEventoOpen] = useState(false)
+  const [novoLinkOpen, setNovoLinkOpen] = useState(false)
   const deleteReservation = useDeleteReservation()
   const mudarStatus = useMudarStatusReserva()
+  const novoConvite = useNovoConvite()
 
   // Quem não é admin só recebe da API as próprias reservas
   const dono = !isAdmin
@@ -43,8 +50,24 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
   const podeEditar = podeEditarReserva(status, papel, dono)
   const cancelarVira = proximoStatus(status, 'cancelar', papel, dono)
 
+  // Evento: editável pelo dono/admin enquanto a reserva ainda vai acontecer
+  const evento = reservation.evento
+  const podeMexerNoEvento = !!evento && status !== 'recusada' && status !== 'cancelada'
+  const codigoConvite = evento?.visibilidade === 'privado' ? evento.codigo_convite : undefined
+
+  async function copiarConvite() {
+    if (!codigoConvite) return
+    try {
+      await navigator.clipboard.writeText(linkConvite(codigoConvite))
+      toast.success('Link do convite copiado.')
+    } catch {
+      toast.error('Não foi possível copiar. Link: ' + linkConvite(codigoConvite))
+    }
+  }
+
   const outros = reservation.concorrentes ?? 0
   const itens = [
+    podeMexerNoEvento,
     podeEditar,
     pode('aprovar'),
     pode('recusar'),
@@ -134,6 +157,26 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
               Editar
             </DropdownMenuItem>
           )}
+          {podeMexerNoEvento && (
+            <>
+              <DropdownMenuItem onClick={() => setEventoOpen(true)}>
+                <Ticket className="h-4 w-4 mr-2" />
+                Editar evento
+              </DropdownMenuItem>
+              {codigoConvite && (
+                <>
+                  <DropdownMenuItem onClick={copiarConvite}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    Copiar link do convite
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setNovoLinkOpen(true)}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Gerar novo link
+                  </DropdownMenuItem>
+                </>
+              )}
+            </>
+          )}
           {cancelarVira !== null && (
             <DropdownMenuItem
               onClick={() =>
@@ -174,6 +217,20 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
       </DropdownMenu>
 
       <ReservationDialog open={editOpen} onOpenChange={setEditOpen} reservation={reservation} />
+
+      {evento && <EditarEventoDialog open={eventoOpen} onOpenChange={setEventoOpen} reserva={reservation} />}
+
+      <ConfirmDialog
+        open={novoLinkOpen}
+        onOpenChange={setNovoLinkOpen}
+        title="Gerar novo link do convite"
+        description="O link antigo deixa de funcionar. Quem já pegou ingresso não é afetado."
+        onConfirm={() => novoConvite.mutate(reservation.id, { onSuccess: () => setNovoLinkOpen(false) })}
+        loading={novoConvite.isPending}
+        confirmLabel="Gerar novo link"
+        loadingLabel="Gerando..."
+        variant="default"
+      />
 
       <RecusarDialog
         open={recusarOpen}

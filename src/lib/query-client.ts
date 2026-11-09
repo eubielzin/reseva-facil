@@ -31,4 +31,12 @@ export const queryKeys = {
   emails: {
     falhos: ['emails', 'falhou'] as const,
   },
+  eventos: {
+    vitrine: ['eventos', 'vitrine'] as const,
+    detalhe: (id: string) => ['eventos', 'detalhe', id] as const,
+    convite: (codigo: string) => ['eventos', 'convite', codigo] as const,
+  },
+  ingressos: {
+    meus: ['ingressos', 'meus'] as const,
+  },
 }
