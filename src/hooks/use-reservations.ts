@@ -9,6 +9,7 @@ import {
   fetchDashboard,
   fetchOcupacao,
   mudarStatusReserva,
+  fetchReservation,
 } from '@/services/reservations'
 import type { ReservationFormValues } from '@/schemas/reservation'
 import type { AcaoReserva, ApprovalStatus } from '@/types'
@@ -17,6 +18,14 @@ export function useReservations(salaId?: string, status?: ApprovalStatus) {
   return useQuery({
     queryKey: queryKeys.reservations.all(salaId, status),
     queryFn: () => fetchReservations(salaId, status),
+  })
+}
+
+export function useReservation(id: string) {
+  return useQuery({
+    queryKey: queryKeys.reservations.detail(id),
+    queryFn: () => fetchReservation(id),
+    enabled: !!id,
   })
 }
 

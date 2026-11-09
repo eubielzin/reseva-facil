@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Ban, Check, Link2, MoreHorizontal, Pencil, RefreshCw, Ticket, Trash2, Undo2, X } from 'lucide-react'
+import Link from 'next/link'
+import { Ban, Check, LayoutList, Link2, MoreHorizontal, Pencil, RefreshCw, Ticket, Trash2, Undo2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -67,6 +68,7 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
 
   const outros = reservation.concorrentes ?? 0
   const itens = [
+    !!evento,
     podeMexerNoEvento,
     podeEditar,
     pode('aprovar'),
@@ -155,6 +157,12 @@ export function ReservationActions({ reservation }: { reservation: ReservationWi
             <DropdownMenuItem onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />
               Editar
+            </DropdownMenuItem>
+          )}
+          {evento && status !== 'recusada' && (
+            <DropdownMenuItem render={<Link href={`/reservas/${reservation.id}/evento`} />}>
+              <LayoutList className="h-4 w-4 mr-2" />
+              Painel do evento
             </DropdownMenuItem>
           )}
           {podeMexerNoEvento && (
