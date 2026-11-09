@@ -59,7 +59,7 @@ Ao criar um novo domínio, siga esse mesmo padrão: `features/<dominio>/componen
 O back-end é um projeto separado em Spring Boot (`../reseva-api`). **Não existem Route Handlers neste projeto** — não crie `src/app/api/`.
 
 - Toda validação e regra de negócio fica na API Java, nunca só no cliente. A validação Zod do front é apenas UX.
-- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=&status=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `POST /reservas/{id}/cancelar`, `POST /reservas/{id}/aprovar|recusar` (admin), `POST /reservas/{id}/cancelamento/aprovar|recusar` (admin), `GET /dashboard` (admin), `GET/POST /me`, `GET /notificacoes` (`?nao_lidas=&limite=`), `GET /notificacoes/nao-lidas/contagem`, `POST /notificacoes/{id}/lida`, `POST /notificacoes/lidas`, `GET /emails?status=falhou` e `POST /emails/{id}/reenviar` (admin), `PUT /reservas/{id}/evento`, `POST /reservas/{id}/evento/convite`, `GET /eventos`, `GET /eventos/{id}`, `GET /eventos/convite/{codigo}`, `POST /eventos/{id}/ingressos`, `GET /ingressos/meus`, `POST /ingressos/{id}/cancelar`, `GET /ingressos/{codigo}/qr.png` (**público**, sem login).
+- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=&status=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `POST /reservas/{id}/cancelar`, `POST /reservas/{id}/aprovar|recusar` (admin), `POST /reservas/{id}/cancelamento/aprovar|recusar` (admin), `GET /dashboard` (admin), `GET/POST /me`, `GET /notificacoes` (`?nao_lidas=&limite=`), `GET /notificacoes/nao-lidas/contagem`, `POST /notificacoes/{id}/lida`, `POST /notificacoes/lidas`, `GET /emails?status=falhou` e `POST /emails/{id}/reenviar` (admin), `PUT /reservas/{id}/evento`, `POST /reservas/{id}/evento/convite`, `GET /eventos`, `GET /eventos/{id}`, `GET /eventos/convite/{codigo}`, `POST /eventos/{id}/ingressos`, `GET /ingressos/meus`, `POST /ingressos/{id}/cancelar`, `GET /ingressos/{codigo}/qr.png` (**público**, sem login), `GET /eventos/checkin/{codigoCheckin}`, `POST /eventos/{id}/checkin`, `POST /ingressos/{id}/checkin/desfazer`, `GET /reservas/{id}/evento/participantes`, `POST /reservas/{id}/evento/link-checkin`.
 - JSON em **snake_case** (`sala_id`, `horario_inicio`, ...). Campos nulos são omitidos da resposta.
 - Erros: `{ error: string, details?: Record<string, string[]> }` com 401, 403, 404, 409 (regra de negócio) e 422 (validação).
 - Ao adicionar um campo: migration Flyway nova (`V<n>__descricao.sql`), entidade, `*Request`/`*Response` e o type/schema aqui no front.
@@ -235,6 +235,14 @@ Uma reserva vira evento pelo campo `evento` do pedido (`EventoRequest`: visibili
 - QR (`QrCodeGenerator`, ZXing) contém `CODIGO · Nome · Tag`; só o código vale. A imagem é pública porque o cliente de email a baixa sem login — `API_PUBLIC_URL` precisa ser acessível da internet no servidor.
 - Participante cancela até o início (para trocar de tag, cancela e pega de novo). Reserva cancelada/excluída cancela os ingressos e avisa; mudança de data/horário/sala avisa quem tem ingresso.
 - Formulários: o bloco `EventoFields` lê `evento.*` via `useFormContext`, usado no pedido e em "Editar evento".
+
+### Check-in
+Regras em `BusinessRules.resultadoCheckin`, `aberturaCheckin`, `extrairCodigoIngresso`, `podeOperarCheckin` (espelho em `business-rules.ts`); orquestração em `CheckinUseCase` e `ParticipantesUseCase`.
+
+- Quem lê: admin, dono do evento ou quem tem o link `/checkin/{codigo_checkin}` (regenerável). Sem permissão → 404. `POST /eventos/{id}/checkin` responde **200 com o resultado** (`ok`, `ja_entrou`, `antes_da_abertura`, `encerrado`, `cancelado`, `outro_evento`, `nao_encontrado`).
+- Janela: abre `checkin_minutos_antes` antes do início (padrão 60, 0–1440) e fecha no fim do evento.
+- **Check-in feito não se faz de novo**: `IngressoRepository.registrarCheckin` é um `UPDATE … WHERE check_in_em IS NULL`; leitura simultânea perde e vira `ja_entrou`. Só dono/admin desfazem (correção de engano).
+- Leitor: `@zxing/browser` (câmera exige HTTPS ou localhost) + campo digitado; a câmera ignora a mesma leitura por 3 s. Painel em `/reservas/[id]/evento` atualiza a cada 10 s durante a janela; CSV gerado no navegador (`src/lib/csv.ts`, `;` + BOM para o Excel).
 
 ### Visibilidade das reservas
 Cada reserva guarda quem a criou (`criado_por` = claim `sub` do JWT do Clerk, gravado pela API no `POST`). Usuário comum só vê as próprias reservas em `GET /reservas` e `GET /reservas/{id}` (reserva de outro responde 404); admin vê todas. Reservas antigas, sem dono, só aparecem para o admin. Regra pura em `BusinessRules.podeVerReserva`.

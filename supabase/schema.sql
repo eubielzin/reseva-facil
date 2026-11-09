@@ -120,3 +120,5 @@ create policy "Allow all on reservas" on reservas for all using (true) with chec
 -- eventos(id uuid pk, reserva_id uuid unique fk reservas, visibilidade publico|privado, descricao, limite_ingressos, tags text[], codigo_convite unique, created_at, updated_at)
 -- ingressos(id uuid pk, evento_id fk eventos, usuario_id fk usuarios, codigo unique, tag, status ativo|cancelado, emitido_em, cancelado_em, check_in_em, created_at)
 --   unique (evento_id, usuario_id) where status = 'ativo'
+-- check-in (V11): eventos.checkin_minutos_antes int default 60 (0..1440), eventos.codigo_checkin unique,
+--   ingressos.check_in_por varchar(64)
