@@ -59,7 +59,7 @@ Ao criar um novo domínio, siga esse mesmo padrão: `features/<dominio>/componen
 O back-end é um projeto separado em Spring Boot (`../reseva-api`). **Não existem Route Handlers neste projeto** — não crie `src/app/api/`.
 
 - Toda validação e regra de negócio fica na API Java, nunca só no cliente. A validação Zod do front é apenas UX.
-- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=&status=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `POST /reservas/{id}/cancelar`, `POST /reservas/{id}/aprovar|recusar` (admin), `POST /reservas/{id}/cancelamento/aprovar|recusar` (admin), `GET /dashboard` (admin), `GET/POST /me`, `GET /notificacoes` (`?nao_lidas=&limite=`), `GET /notificacoes/nao-lidas/contagem`, `POST /notificacoes/{id}/lida`, `POST /notificacoes/lidas`, `GET /emails?status=falhou` e `POST /emails/{id}/reenviar` (admin).
+- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=&status=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `POST /reservas/{id}/cancelar`, `POST /reservas/{id}/aprovar|recusar` (admin), `POST /reservas/{id}/cancelamento/aprovar|recusar` (admin), `GET /dashboard` (admin), `GET/POST /me`, `GET /notificacoes` (`?nao_lidas=&limite=`), `GET /notificacoes/nao-lidas/contagem`, `POST /notificacoes/{id}/lida`, `POST /notificacoes/lidas`, `GET /emails?status=falhou` e `POST /emails/{id}/reenviar` (admin), `PUT /reservas/{id}/evento`, `POST /reservas/{id}/evento/convite`, `GET /eventos`, `GET /eventos/{id}`, `GET /eventos/convite/{codigo}`, `POST /eventos/{id}/ingressos`, `GET /ingressos/meus`, `POST /ingressos/{id}/cancelar`, `GET /ingressos/{codigo}/qr.png` (**público**, sem login).
 - JSON em **snake_case** (`sala_id`, `horario_inicio`, ...). Campos nulos são omitidos da resposta.
 - Erros: `{ error: string, details?: Record<string, string[]> }` com 401, 403, 404, 409 (regra de negócio) e 422 (validação).
 - Ao adicionar um campo: migration Flyway nova (`V<n>__descricao.sql`), entidade, `*Request`/`*Response` e o type/schema aqui no front.
@@ -225,6 +225,16 @@ Cada sala possui dois campos booleanos configuráveis pelo admin:
 - **`disponivel_fim_de_semana`** (`boolean`, default `false`): se `false`, reservas cujo campo `data` cai em sábado ou domingo são rejeitadas com HTTP 409. O calendário do formulário desabilita visualmente esses dias via `disabled={{ dayOfWeek: [0, 6] }}` do react-day-picker. Ao trocar de sala, um `useEffect` em `reservation-form.tsx` limpa o campo `data` automaticamente se a data selecionada for fim de semana e a nova sala não permitir. Dia da semana calculado como `new Date(data + 'T12:00:00').getDay()` (T12 evita problemas de timezone UTC).
 
 Ambas as regras são validadas no servidor **após** a validação de capacidade e **antes** da detecção de conflito.
+
+### Eventos e ingressos
+Uma reserva vira evento pelo campo `evento` do pedido (`EventoRequest`: visibilidade, descrição, limite, tags). Regras puras em `BusinessRules.impedimentoIngresso`, `erroLimiteIngressos`, `normalizarTags`/`erroTags`, `apareceNaVitrine` (espelho em `business-rules.ts`); orquestração em `EventoService` e `EmitirIngressoUseCase`.
+
+- Ingresso só com reserva **aprovada**, antes do início, com vaga e com uma das tags do evento. **Um ingresso ativo por pessoa por evento** (índice único parcial no banco). A emissão trava a linha do evento (`findParaEmitir`, `PESSIMISTIC_WRITE`).
+- Limite: de 1 (e no mínimo os ingressos já emitidos) até a capacidade da sala. Tags: 1 a 10, até 40 caracteres, sem repetição; o ingresso guarda uma cópia do texto da tag.
+- Público aparece em `/eventos`; privado só por `/eventos/convite/{codigo}` (código regenerável). Privado sem o código certo responde 404.
+- QR (`QrCodeGenerator`, ZXing) contém `CODIGO · Nome · Tag`; só o código vale. A imagem é pública porque o cliente de email a baixa sem login — `API_PUBLIC_URL` precisa ser acessível da internet no servidor.
+- Participante cancela até o início (para trocar de tag, cancela e pega de novo). Reserva cancelada/excluída cancela os ingressos e avisa; mudança de data/horário/sala avisa quem tem ingresso.
+- Formulários: o bloco `EventoFields` lê `evento.*` via `useFormContext`, usado no pedido e em "Editar evento".
 
 ### Visibilidade das reservas
 Cada reserva guarda quem a criou (`criado_por` = claim `sub` do JWT do Clerk, gravado pela API no `POST`). Usuário comum só vê as próprias reservas em `GET /reservas` e `GET /reservas/{id}` (reserva de outro responde 404); admin vê todas. Reservas antigas, sem dono, só aparecem para o admin. Regra pura em `BusinessRules.podeVerReserva`.

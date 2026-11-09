@@ -116,3 +116,7 @@ create policy "Allow all on reservas" on reservas for all using (true) with chec
 -- usuarios(id varchar(64) pk /* sub do Clerk */, nome, email, papel, created_at, updated_at)
 -- emails(id uuid pk, destinatario, assunto, html, status pendente|enviado|falhou, tentativas, ultimo_erro, created_at, enviado_em)
 -- notificacoes(id uuid pk, usuario_id fk usuarios, tipo, titulo, mensagem, reserva_id fk null, email_id fk null, lida_em, created_at)
+--
+-- eventos(id uuid pk, reserva_id uuid unique fk reservas, visibilidade publico|privado, descricao, limite_ingressos, tags text[], codigo_convite unique, created_at, updated_at)
+-- ingressos(id uuid pk, evento_id fk eventos, usuario_id fk usuarios, codigo unique, tag, status ativo|cancelado, emitido_em, cancelado_em, check_in_em, created_at)
+--   unique (evento_id, usuario_id) where status = 'ativo'
