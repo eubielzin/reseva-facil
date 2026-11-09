@@ -39,4 +39,8 @@ export const queryKeys = {
   ingressos: {
     meus: ['ingressos', 'meus'] as const,
   },
+  checkin: {
+    link: (codigo: string) => ['checkin', 'link', codigo] as const,
+    painel: (reservaId: string) => ['checkin', 'painel', reservaId] as const,
+  },
 }

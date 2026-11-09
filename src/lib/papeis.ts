@@ -7,8 +7,8 @@ export function homeDoPapel(papel: Papel): string {
   return '/eventos'
 }
 
-/** Telas de participante: qualquer papel pode pegar ingresso. */
-const AREA_COMUM = ['/perfil', '/bem-vindo', '/eventos', '/ingressos']
+/** Telas de participante (qualquer papel pega ingresso) e o leitor de check-in, que vale pelo link. */
+const AREA_COMUM = ['/perfil', '/bem-vindo', '/eventos', '/ingressos', '/checkin']
 
 /**
  * Para onde redirecionar quem abriu uma rota que o papel não pode ver, ou null se pode.
