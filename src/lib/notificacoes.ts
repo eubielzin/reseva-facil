@@ -10,6 +10,11 @@ export function linkDaNotificacao(n: Pick<Notificacao, 'tipo' | 'reserva_id'>): 
       return `/pedidos?aba=cancelamentos${destaque ? `&${destaque}` : ''}`
     case 'email_falhou':
       return '/perfil#emails'
+    case 'ingresso_emitido':
+    case 'ingresso_cancelado':
+    case 'evento_cancelado':
+    case 'evento_alterado':
+      return '/ingressos'
     default:
       return `/reservas${destaque ? `?${destaque}` : ''}`
   }

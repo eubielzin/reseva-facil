@@ -4,17 +4,20 @@ import type { Papel } from '@/types'
 export function homeDoPapel(papel: Papel): string {
   if (papel === 'admin') return '/'
   if (papel === 'organizador') return '/reservas'
-  return '/perfil'
+  return '/eventos'
 }
+
+/** Telas de participante: qualquer papel pode pegar ingresso. */
+const AREA_COMUM = ['/perfil', '/bem-vindo', '/eventos', '/ingressos']
 
 /**
  * Para onde redirecionar quem abriu uma rota que o papel não pode ver, ou null se pode.
  * Só UX: quem bloqueia de verdade é a API (403).
  */
 export function redirecionamentoDoPapel(papel: Papel, pathname: string): string | null {
-  const livre = pathname.startsWith('/perfil') || pathname.startsWith('/bem-vindo')
+  const livre = AREA_COMUM.some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))
   if (livre || papel === 'admin') return null
-  if (papel === 'usuario') return '/perfil'
+  if (papel === 'usuario') return '/eventos'
   // organizador
   if (pathname === '/' || pathname.startsWith('/pedidos')) return '/reservas'
   return null

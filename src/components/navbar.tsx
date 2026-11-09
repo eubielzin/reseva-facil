@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
 import { BrandMark, BrandName } from '@/components/brand-mark'
 import { NotificationBell } from '@/features/notificacoes/components/notification-bell'
-import { CalendarDays, LayoutDashboard, DoorOpen, Inbox, UserRound, type LucideIcon } from 'lucide-react'
+import { CalendarDays, LayoutDashboard, DoorOpen, Inbox, PartyPopper, Ticket, UserRound, type LucideIcon } from 'lucide-react'
 import type { Papel } from '@/types'
 
 interface NavLink {
@@ -22,15 +22,22 @@ const LINKS: Record<Papel, NavLink[]> = {
     { href: '/pedidos', label: 'Pedidos', icon: Inbox },
     { href: '/salas', label: 'Salas', icon: DoorOpen },
     { href: '/reservas', label: 'Reservas', icon: CalendarDays },
+    { href: '/eventos', label: 'Eventos', icon: PartyPopper },
+    { href: '/ingressos', label: 'Ingressos', icon: Ticket },
     { href: '/perfil', label: 'Perfil', icon: UserRound },
   ],
   organizador: [
-    { href: '/salas', label: 'Salas', icon: DoorOpen },
     { href: '/reservas', label: 'Minhas reservas', icon: CalendarDays },
+    { href: '/salas', label: 'Salas', icon: DoorOpen },
+    { href: '/eventos', label: 'Eventos', icon: PartyPopper },
+    { href: '/ingressos', label: 'Ingressos', icon: Ticket },
     { href: '/perfil', label: 'Perfil', icon: UserRound },
   ],
-  // Etapa 2 traz a vitrine de eventos e "Meus ingressos"
-  usuario: [{ href: '/perfil', label: 'Perfil', icon: UserRound }],
+  usuario: [
+    { href: '/eventos', label: 'Eventos', icon: PartyPopper },
+    { href: '/ingressos', label: 'Meus ingressos', icon: Ticket },
+    { href: '/perfil', label: 'Perfil', icon: UserRound },
+  ],
 }
 
 function useLinks() {
@@ -51,7 +58,7 @@ export function Navbar() {
       </div>
       <nav className="flex flex-col gap-0.5 px-3 flex-1">
         {links.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
+          const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
           return (
             <Link
               key={href}
@@ -99,7 +106,7 @@ export function MobileNav() {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-card flex">
       {links.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href
+        const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
         return (
           <Link
             key={href}

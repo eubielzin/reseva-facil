@@ -5,7 +5,7 @@ describe('homeDoPapel', () => {
   it('cada papel tem a sua tela inicial', () => {
     expect(homeDoPapel('admin')).toBe('/')
     expect(homeDoPapel('organizador')).toBe('/reservas')
-    expect(homeDoPapel('usuario')).toBe('/perfil')
+    expect(homeDoPapel('usuario')).toBe('/eventos')
   })
 })
 
@@ -22,10 +22,19 @@ describe('redirecionamentoDoPapel', () => {
     expect(redirecionamentoDoPapel('organizador', '/salas')).toBeNull()
   })
 
-  it('usuário comum só vê o perfil', () => {
-    expect(redirecionamentoDoPapel('usuario', '/reservas')).toBe('/perfil')
-    expect(redirecionamentoDoPapel('usuario', '/')).toBe('/perfil')
+  it('usuário comum vê eventos, ingressos e perfil', () => {
+    expect(redirecionamentoDoPapel('usuario', '/reservas')).toBe('/eventos')
+    expect(redirecionamentoDoPapel('usuario', '/')).toBe('/eventos')
+    expect(redirecionamentoDoPapel('usuario', '/pedidos')).toBe('/eventos')
     expect(redirecionamentoDoPapel('usuario', '/perfil')).toBeNull()
     expect(redirecionamentoDoPapel('usuario', '/bem-vindo')).toBeNull()
+    expect(redirecionamentoDoPapel('usuario', '/eventos')).toBeNull()
+    expect(redirecionamentoDoPapel('usuario', '/eventos/convite/K7QP2XABCD')).toBeNull()
+    expect(redirecionamentoDoPapel('usuario', '/ingressos')).toBeNull()
+  })
+
+  it('organizador também participa de eventos', () => {
+    expect(redirecionamentoDoPapel('organizador', '/eventos')).toBeNull()
+    expect(redirecionamentoDoPapel('organizador', '/ingressos')).toBeNull()
   })
 })

@@ -2,7 +2,6 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Ticket } from 'lucide-react'
 import { useUser } from '@clerk/nextjs'
 import { PageHeader } from '@/components/page-header'
 import { CardSkeleton } from '@/components/loading-state'
@@ -71,17 +70,6 @@ export default function PerfilPage() {
           </div>
         )}
 
-        {isLoaded && papel === 'usuario' && (
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-dashed bg-card/60 px-5 py-4">
-            <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <div>
-              <p className="text-sm font-medium">Em breve: eventos e ingressos</p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Aqui você vai encontrar os eventos abertos da instituição e os seus ingressos com QR code.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
 
       <NotificacoesLista />

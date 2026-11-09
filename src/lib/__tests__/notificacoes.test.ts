@@ -20,6 +20,12 @@ describe('linkDaNotificacao', () => {
     expect(linkDaNotificacao({ tipo: 'pedido_aprovado' })).toBe('/reservas')
   })
 
+  it('avisos de ingresso e de evento abrem "Meus ingressos"', () => {
+    expect(linkDaNotificacao({ tipo: 'ingresso_emitido', reserva_id: 'r1' })).toBe('/ingressos')
+    expect(linkDaNotificacao({ tipo: 'evento_cancelado', reserva_id: 'r1' })).toBe('/ingressos')
+    expect(linkDaNotificacao({ tipo: 'evento_alterado' })).toBe('/ingressos')
+  })
+
   it('falha de email abre a seção de emails do perfil', () => {
     expect(linkDaNotificacao({ tipo: 'email_falhou' })).toBe('/perfil#emails')
   })
