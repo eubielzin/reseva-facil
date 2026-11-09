@@ -99,6 +99,29 @@ export function EventoFields({ capacidadeSala, ingressosEmitidos = 0 }: {
 
       <FormField
         control={control}
+        name="evento.checkin_minutos_antes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Check-in abre quantos minutos antes</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={0}
+                max={1440}
+                step={5}
+                className="max-w-40"
+                value={Number.isNaN(field.value) ? '' : field.value}
+                onChange={(e) => field.onChange(e.target.valueAsNumber)}
+              />
+            </FormControl>
+            <FormDescription>Padrão: 60. O check-in fecha no fim do evento.</FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
         name="evento.tags"
         render={({ field, fieldState }) => (
           <FormItem>

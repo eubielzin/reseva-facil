@@ -35,7 +35,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
 import { EventoFields } from '@/features/eventos/components/evento-fields'
-import { TAGS_SUGERIDAS } from '@/lib/business-rules'
+import { CHECKIN_MINUTOS_PADRAO, TAGS_SUGERIDAS } from '@/lib/business-rules'
 import type { EventoFormValues } from '@/schemas/evento'
 import { useOcupacao } from '@/hooks/use-reservations'
 import { TimeSlotPicker } from './time-slot-picker'
@@ -63,6 +63,7 @@ function eventoInicial(defaultValues?: ReservationWithRoom): EventoFormValues {
     descricao: e?.descricao ?? '',
     limite_ingressos: e?.limite_ingressos ?? defaultValues?.quantidade_participantes ?? 1,
     tags: e?.tags ?? [...TAGS_SUGERIDAS],
+    checkin_minutos_antes: e?.checkin_minutos_antes ?? CHECKIN_MINUTOS_PADRAO,
   }
 }
 

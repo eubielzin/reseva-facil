@@ -34,6 +34,7 @@ function valoresIniciais(reserva: ReservationWithRoom): EditarEventoFormValues {
       descricao: e?.descricao ?? '',
       limite_ingressos: e?.limite_ingressos ?? 1,
       tags: e?.tags ?? [],
+      checkin_minutos_antes: e?.checkin_minutos_antes ?? 60,
     },
   }
 }
