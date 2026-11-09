@@ -1,4 +1,4 @@
-import type { AcaoReserva, ApprovalStatus, Papel } from '@/types'
+import type { AcaoReserva, ApprovalStatus, Papel, ResultadoCheckin } from '@/types'
 
 const HORA_ABERTURA = '08:00'
 
@@ -200,4 +200,39 @@ export function alternarTag(tags: string[], tag: string): string[] {
   return tags.some((t) => chaveTag(t) === chave)
     ? tags.filter((t) => chaveTag(t) !== chave)
     : normalizarTags([...tags, tag])
+}
+
+// ---------------------------------------------------------------------------
+// Check-in — espelho de BusinessRules.java (reseva-api)
+// ---------------------------------------------------------------------------
+
+export const CHECKIN_MINUTOS_PADRAO = 60
+export const CHECKIN_MINUTOS_MAX = 1440
+
+const ALFABETO = '[2-9A-HJ-NP-Z]'
+const COM_PREFIXO = new RegExp(`RF[\\s-]*(${ALFABETO}{4})[\\s-]*(${ALFABETO}{4})`)
+const SEM_PREFIXO = new RegExp(`^(${ALFABETO}{4})-?(${ALFABETO}{4})$`)
+
+/** RF-XXXX-XXXX a partir do texto do QR ou do que foi digitado; null se não for código. */
+export function extrairCodigoIngresso(lido: string): string | null {
+  const texto = lido.toUpperCase().trim()
+  if (!texto) return null
+  const m = COM_PREFIXO.exec(texto)
+  if (m) return `RF-${m[1]}-${m[2]}`
+  const s = SEM_PREFIXO.exec(texto.replace(/\s+/g, ''))
+  return s ? `RF-${s[1]}-${s[2]}` : null
+}
+
+/** "yyyy-MM-ddTHH:mm" da abertura do check-in (pode cair no dia anterior). */
+export function aberturaCheckin(data: string, horarioInicio: string, minutosAntes: number): string {
+  const [ano, mes, dia] = data.split('-').map(Number)
+  const [hora, minuto] = horarioInicio.split(':').map(Number)
+  const d = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto) - minutosAntes * 60_000)
+  return d.toISOString().slice(0, 16)
+}
+
+export function corDoResultado(resultado: ResultadoCheckin): 'verde' | 'amarelo' | 'vermelho' {
+  if (resultado === 'ok') return 'verde'
+  if (resultado === 'ja_entrou' || resultado === 'antes_da_abertura') return 'amarelo'
+  return 'vermelho'
 }

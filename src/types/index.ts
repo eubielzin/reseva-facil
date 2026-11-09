@@ -47,6 +47,62 @@ export interface EventoResumo {
   ingressos_emitidos: number
   /** Só em evento privado: /eventos/convite/{codigo_convite} */
   codigo_convite?: string
+  /** Check-in abre esses minutos antes do início (padrão 60) */
+  checkin_minutos_antes: number
+  /** Link da equipe de apoio: /checkin/{codigo_checkin} */
+  codigo_checkin?: string
+}
+
+/** Cabeçalho do leitor e do painel do evento */
+export interface CheckinInfo {
+  evento_id: string
+  reserva_id: string
+  titulo: string
+  sala_nome: string
+  data: string
+  horario_inicio: string
+  horario_fim: string
+  abertura_checkin: string // yyyy-MM-ddTHH:mm
+  janela_aberta: boolean
+  presentes: number
+  total: number
+}
+
+export interface Participante {
+  ingresso_id: string
+  nome?: string
+  /** Só no painel do dono/admin */
+  email?: string
+  tag: string
+  codigo: string
+  status: 'ativo' | 'cancelado'
+  emitido_em: string
+  cancelado_em?: string
+  check_in_em?: string
+}
+
+export type ResultadoCheckin =
+  | 'ok'
+  | 'ja_entrou'
+  | 'antes_da_abertura'
+  | 'encerrado'
+  | 'cancelado'
+  | 'outro_evento'
+  | 'nao_encontrado'
+
+export interface CheckinLeitura {
+  resultado: ResultadoCheckin
+  mensagem: string
+  participante?: Participante
+  presentes: number
+  total: number
+}
+
+export interface PainelEvento {
+  evento: CheckinInfo
+  cancelados: number
+  por_tag: { tag: string; ativos: number; presentes: number }[]
+  participantes: Participante[]
 }
 
 /** Evento como o participante vê (vitrine, página do evento, meus ingressos) */
