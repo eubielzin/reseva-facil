@@ -100,3 +100,19 @@ create policy "Allow all on reservas" on reservas for all using (true) with chec
 --   ('Sala Azul',    10),
 --   ('Sala Verde',   20),
 --   ('Auditório',   100);
+
+-- ============================================================
+-- APROVAÇÃO, USUÁRIOS, EMAILS E NOTIFICAÇÕES
+-- Referência apenas: a fonte de verdade são as migrations V5–V8
+-- em reseva-api/src/main/resources/db/migration/.
+-- ============================================================
+-- reservas.status: pendente | aprovada | recusada | cancelamento_solicitado | cancelada
+-- alter table reservas add column status varchar(30) not null default 'aprovada';
+-- alter table reservas add column motivo_recusa varchar(500);
+-- alter table reservas add column decidido_por varchar(64);
+-- alter table reservas add column decidido_em timestamptz;
+-- alter table reservas add column cancelamento_solicitado_em timestamptz;
+--
+-- usuarios(id varchar(64) pk /* sub do Clerk */, nome, email, papel, created_at, updated_at)
+-- emails(id uuid pk, destinatario, assunto, html, status pendente|enviado|falhou, tentativas, ultimo_erro, created_at, enviado_em)
+-- notificacoes(id uuid pk, usuario_id fk usuarios, tipo, titulo, mensagem, reserva_id fk null, email_id fk null, lida_em, created_at)

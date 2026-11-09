@@ -59,7 +59,7 @@ Ao criar um novo domínio, siga esse mesmo padrão: `features/<dominio>/componen
 O back-end é um projeto separado em Spring Boot (`../reseva-api`). **Não existem Route Handlers neste projeto** — não crie `src/app/api/`.
 
 - Toda validação e regra de negócio fica na API Java, nunca só no cliente. A validação Zod do front é apenas UX.
-- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `GET /dashboard` (admin).
+- Endpoints: `GET/POST /salas`, `GET/PUT/DELETE /salas/{id}`, `GET/POST /reservas` (`?sala_id=&status=`), `GET /reservas/ocupacao?data=yyyy-MM-dd` (`&sala_id=`), `GET/PUT/DELETE /reservas/{id}`, `POST /reservas/{id}/cancelar`, `POST /reservas/{id}/aprovar|recusar` (admin), `POST /reservas/{id}/cancelamento/aprovar|recusar` (admin), `GET /dashboard` (admin), `GET/POST /me`, `GET /notificacoes` (`?nao_lidas=&limite=`), `GET /notificacoes/nao-lidas/contagem`, `POST /notificacoes/{id}/lida`, `POST /notificacoes/lidas`, `GET /emails?status=falhou` e `POST /emails/{id}/reenviar` (admin).
 - JSON em **snake_case** (`sala_id`, `horario_inicio`, ...). Campos nulos são omitidos da resposta.
 - Erros: `{ error: string, details?: Record<string, string[]> }` com 401, 403, 404, 409 (regra de negócio) e 422 (validação).
 - Ao adicionar um campo: migration Flyway nova (`V<n>__descricao.sql`), entidade, `*Request`/`*Response` e o type/schema aqui no front.
@@ -67,7 +67,9 @@ O back-end é um projeto separado em Spring Boot (`../reseva-api`). **Não exist
 ### Chamando a API
 - Services usam `apiFetch(path, init)` de `@/lib/api-client` — nunca `fetch` direto. Ele monta a URL com `NEXT_PUBLIC_API_URL` (padrão `http://localhost:8080`) e envia `Authorization: Bearer <JWT do Clerk>`.
 - O token vem do `getToken()` do `useAuth()`, registrado pelo `ApiAuthBridge` em `src/components/providers.tsx`. Services só funcionam no browser.
-- Papel de admin: a API lê o claim `metadata.role` do JWT (session token do Clerk deve expor `"metadata": "{{user.public_metadata}}"`). Criar/editar/excluir sala e editar/excluir reserva exigem `admin`; criar reserva exige só login.
+- Papéis: a API lê o claim `metadata.role` do JWT (`usuario` quando ausente, `organizador`, `admin`). O session token do Clerk deve expor `"metadata": "{{user.public_metadata}}"`, `"email": "{{user.primary_email_address}}"` e `"nome": "{{user.full_name}}"`. Criar/editar/excluir sala e aprovar/recusar exigem `admin`; criar reserva exige `organizador` ou `admin`. No front, `useRole()` devolve `papel`; `src/lib/papeis.ts` decide a tela de cada papel (usado no `proxy.ts`).
+- Cadastro: `/cadastro` cria `usuario`; `/cadastro/organizador` cria `organizador` (a API grava o papel no Clerk via `CLERK_SECRET_KEY`). Admin é promovido manualmente no painel do Clerk. Todo login passa por `/bem-vindo`, que chama `POST /me` e renova o token.
+- Emails: a API envia pelo **oxymail** (`EMAIL_SERVICE_URL`, mesmo serviço do Achados & Perdidos), sempre depois do commit e em segundo plano (`EmailSender`). Falha vira email `falhou` + notificação para os admins, que reenviam pelo `/perfil`. Texto dos avisos em `ReservaAvisos.java`.
 
 ---
 
@@ -201,7 +203,17 @@ onChange={(e) => field.onChange(e.target.valueAsNumber)}
 Implementadas na API Java: `BusinessRules.java` (funções puras) e `ReservaValidator.java` (ordem de aplicação). `src/lib/business-rules.ts` é um espelho para uso na UI — ao mudar uma regra, mude nos dois lados.
 
 ### Conflito de horário
-Usa desigualdade **não-estrita**: reservas que se encostam (ex.: 14:00–15:00 e 15:00–16:00) **são conflito**. Implementado em `ReservaRepository.findConflicts` com `horarioInicio <= :horarioFim AND horarioFim >= :horarioInicio`.
+Usa desigualdade **não-estrita**: reservas que se encostam (ex.: 14:00–15:00 e 15:00–16:00) **são conflito**. Implementado em `ReservaRepository.findConflicts` com `horarioInicio <= :horarioFim AND horarioFim >= :horarioInicio`. Só reservas que **bloqueiam** o horário contam (ver abaixo): use `findConflitosBloqueantes`.
+
+### Aprovação de reservas
+Status: `pendente` → `aprovada` | `recusada`; `aprovada` → `cancelamento_solicitado` → `cancelada` (ou volta a `aprovada`). Regras puras em `BusinessRules.proximoStatus` / `podeEditarReserva` (espelho em `business-rules.ts`); efeitos em `MudarStatusReservaUseCase`.
+
+- Reserva de **organizador** nasce `pendente`; de **admin**, `aprovada`.
+- **Bloqueiam o horário** só `aprovada` e `cancelamento_solicitado` (`bloqueiaHorario`). Pendente **não** bloqueia: vários organizadores podem pedir o mesmo horário e não aparecem em `/reservas/ocupacao`.
+- Pedido que conflita com reserva aprovada → 409. Aprovar re-checa (409 se outro já foi aprovado) e **recusa automaticamente** os pendentes que conflitam, com motivo fixo.
+- Ordem de chegada = `created_at`; a API devolve `ordem_pedido` e `concorrentes` nos pendentes. `/pedidos` agrupa as disputas com `agruparDisputas`.
+- Organizador edita/cancela só o próprio pedido `pendente`; na `aprovada` só **solicita** cancelamento (admin decide). Admin cancela direto.
+- Transição inválida → 409 (`TransicaoStatusInvalidaException`). O painel "Hoje" considera só reservas que bloqueiam.
 
 ### Horário de funcionamento
 Por padrão, reservas só podem começar a partir das **08:00** (`HORA_ABERTURA`). A validação de madrugada é feita **no servidor** (API Java), condicionalmente ao campo `sala.disponivel_madrugada`. O schema Zod de reserva **não** possui refine de hora mínima — a regra é por sala. O banco usa tipo `time`, que não suporta cruzar meia-noite — fim máximo recomendado: 23:59.
