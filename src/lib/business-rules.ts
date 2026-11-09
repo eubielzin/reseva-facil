@@ -150,3 +150,54 @@ export function agruparDisputas<T extends PedidoDisputa>(pedidos: T[]): T[][] {
     }, `${g[0].data} ${g[0].horario_inicio}`)
   return grupos.sort((a, b) => inicioGrupo(a).localeCompare(inicioGrupo(b)))
 }
+
+// ---------------------------------------------------------------------------
+// Eventos e ingressos — espelho de BusinessRules.java (reseva-api)
+// ---------------------------------------------------------------------------
+
+export const TAGS_SUGERIDAS = ['Organização', 'Staff', 'Aluno']
+export const MAX_TAGS = 10
+export const MAX_TAMANHO_TAG = 40
+
+export function vagasRestantes(limite: number, ativos: number): number {
+  return Math.max(0, limite - ativos)
+}
+
+/** "ultimas" quando sobram menos de 10% das vagas (ou só 1). */
+export function situacaoVagas(vagas: number, limite: number): 'esgotado' | 'ultimas' | 'disponivel' {
+  if (vagas <= 0) return 'esgotado'
+  if (vagas === 1 || vagas < limite * 0.1) return 'ultimas'
+  return 'disponivel'
+}
+
+const chaveTag = (tag: string) => tag.trim().replace(/\s+/g, ' ').toLowerCase()
+
+/** Remove espaços nas pontas, vazias e repetidas (ignorando maiúsculas), mantendo a ordem. */
+export function normalizarTags(tags: string[]): string[] {
+  const vistas = new Set<string>()
+  const resultado: string[] = []
+  for (const tag of tags) {
+    const limpa = tag.trim().replace(/\s+/g, ' ')
+    if (!limpa || vistas.has(chaveTag(limpa))) continue
+    vistas.add(chaveTag(limpa))
+    resultado.push(limpa)
+  }
+  return resultado
+}
+
+export function erroTags(tags: string[]): string | null {
+  if (tags.length === 0) return 'Escolha pelo menos uma tag para o evento.'
+  if (tags.length > MAX_TAGS) return `Use no máximo ${MAX_TAGS} tags.`
+  if (tags.some((t) => t.length > MAX_TAMANHO_TAG)) {
+    return `Cada tag deve ter no máximo ${MAX_TAMANHO_TAG} caracteres.`
+  }
+  return null
+}
+
+/** Marca a tag se não estiver na lista; desmarca se estiver (comparando sem maiúsculas). */
+export function alternarTag(tags: string[], tag: string): string[] {
+  const chave = chaveTag(tag)
+  return tags.some((t) => chaveTag(t) === chave)
+    ? tags.filter((t) => chaveTag(t) !== chave)
+    : normalizarTags([...tags, tag])
+}

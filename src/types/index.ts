@@ -27,11 +27,59 @@ export interface Reservation {
   /** Só em pedidos pendentes: posição na fila de quem disputa o mesmo horário (1 = primeiro) */
   ordem_pedido?: number
   concorrentes?: number
+  /** Presente quando a reserva é um evento com ingressos */
+  evento?: EventoResumo
   created_at: string
   updated_at: string
 }
 
 export type Papel = 'usuario' | 'organizador' | 'admin'
+
+export type Visibilidade = 'publico' | 'privado'
+
+/** Evento dentro da reserva (visão do organizador/admin) */
+export interface EventoResumo {
+  id: string
+  visibilidade: Visibilidade
+  descricao?: string
+  limite_ingressos: number
+  tags: string[]
+  ingressos_emitidos: number
+  /** Só em evento privado: /eventos/convite/{codigo_convite} */
+  codigo_convite?: string
+}
+
+/** Evento como o participante vê (vitrine, página do evento, meus ingressos) */
+export interface EventoPublico {
+  id: string
+  titulo: string
+  descricao?: string
+  visibilidade: Visibilidade
+  sala_nome: string
+  data: string // YYYY-MM-DD
+  horario_inicio: string // HH:MM
+  horario_fim: string // HH:MM
+  tags: string[]
+  limite_ingressos: number
+  vagas_restantes: number
+  esgotado: boolean
+  encerrado: boolean
+  meu_ingresso?: Ingresso
+}
+
+export interface Ingresso {
+  id: string
+  codigo: string
+  tag: string
+  status: 'ativo' | 'cancelado'
+  emitido_em: string
+  cancelado_em?: string
+  check_in_em?: string
+  pode_cancelar: boolean
+  /** Relativo à API e sem login: /ingressos/{codigo}/qr.png */
+  qr_url: string
+  evento?: EventoPublico
+}
 
 export type ApprovalStatus =
   | 'pendente'
@@ -65,6 +113,10 @@ export type TipoNotificacao =
   | 'cancelamento_recusado'
   | 'reserva_cancelada'
   | 'email_falhou'
+  | 'ingresso_emitido'
+  | 'ingresso_cancelado'
+  | 'evento_cancelado'
+  | 'evento_alterado'
 
 export interface Notificacao {
   id: string
