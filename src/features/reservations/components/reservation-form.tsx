@@ -48,6 +48,8 @@ interface ReservationFormProps {
   isLoading?: boolean
   onCancel: () => void
   serverError?: string
+  /** Texto do botão de envio (ex.: "Enviar pedido" para organizador) */
+  submitLabel?: string
 }
 
 export function ReservationForm({
@@ -57,6 +59,7 @@ export function ReservationForm({
   isLoading,
   onCancel,
   serverError,
+  submitLabel,
 }: ReservationFormProps) {
   const form = useForm<ReservationFormInternalValues>({
     resolver: zodResolver(reservationFormSchema),
@@ -378,9 +381,7 @@ export function ReservationForm({
           <Button type="submit" disabled={isLoading}>
             {isLoading
               ? 'Salvando...'
-              : defaultValues
-              ? 'Salvar alterações'
-              : 'Criar reserva'}
+              : submitLabel ?? (defaultValues ? 'Salvar alterações' : 'Criar reserva')}
           </Button>
         </div>
       </form>

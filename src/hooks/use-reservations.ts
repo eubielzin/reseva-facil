@@ -8,13 +8,15 @@ import {
   deleteReservation,
   fetchDashboard,
   fetchOcupacao,
+  mudarStatusReserva,
 } from '@/services/reservations'
 import type { ReservationFormValues } from '@/schemas/reservation'
+import type { AcaoReserva, ApprovalStatus } from '@/types'
 
-export function useReservations(salaId?: string) {
+export function useReservations(salaId?: string, status?: ApprovalStatus) {
   return useQuery({
-    queryKey: queryKeys.reservations.all(salaId),
-    queryFn: () => fetchReservations(salaId),
+    queryKey: queryKeys.reservations.all(salaId, status),
+    queryFn: () => fetchReservations(salaId, status),
   })
 }
 
@@ -40,10 +42,14 @@ export function useCreateReservation() {
 
   return useMutation({
     mutationFn: (values: ReservationFormValues) => createReservation(values),
-    onSuccess: () => {
+    onSuccess: (reserva) => {
       qc.invalidateQueries({ queryKey: ['reservations'] })
       qc.invalidateQueries({ queryKey: queryKeys.dashboard })
-      toast.success('Reserva criada com sucesso!')
+      toast.success(
+        reserva.status === 'pendente'
+          ? 'Pedido enviado para aprovação. Você será avisado por email.'
+          : 'Reserva criada com sucesso!'
+      )
     },
     onError: (error: Error) => {
       toast.error(error.message)
@@ -77,6 +83,37 @@ export function useDeleteReservation() {
       qc.invalidateQueries({ queryKey: ['reservations'] })
       qc.invalidateQueries({ queryKey: queryKeys.dashboard })
       toast.success('Reserva excluída com sucesso!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+}
+
+const MENSAGEM_SUCESSO: Record<AcaoReserva, string> = {
+  aprovar: 'Pedido aprovado.',
+  recusar: 'Pedido recusado.',
+  cancelar: 'Reserva cancelada.',
+  aprovar_cancelamento: 'Cancelamento aprovado. O horário foi liberado.',
+  recusar_cancelamento: 'Cancelamento recusado. A reserva continua valendo.',
+}
+
+/** Aprovar, recusar, cancelar e decidir cancelamento. */
+export function useMudarStatusReserva() {
+  const qc = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, acao, motivo }: { id: string; acao: AcaoReserva; motivo?: string }) =>
+      mudarStatusReserva(id, acao, motivo),
+    onSuccess: (reserva, { acao }) => {
+      qc.invalidateQueries({ queryKey: ['reservations'] })
+      qc.invalidateQueries({ queryKey: queryKeys.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.notificacoes.root })
+      toast.success(
+        acao === 'cancelar' && reserva.status === 'cancelamento_solicitado'
+          ? 'Pedido de cancelamento enviado ao administrador.'
+          : MENSAGEM_SUCESSO[acao]
+      )
     },
     onError: (error: Error) => {
       toast.error(error.message)

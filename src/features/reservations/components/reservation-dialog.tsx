@@ -3,12 +3,14 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ReservationForm } from './reservation-form'
 import { useCreateReservation, useUpdateReservation } from '@/hooks/use-reservations'
 import { useRooms } from '@/hooks/use-rooms'
+import { useRole } from '@/hooks/use-role'
 import type { ReservationWithRoom } from '@/types'
 import type { ReservationFormValues } from '@/schemas/reservation'
 
@@ -26,6 +28,9 @@ export function ReservationDialog({
   defaultSalaId,
 }: ReservationDialogProps) {
   const { data: rooms = [] } = useRooms()
+  const { isAdmin } = useRole()
+  // Reserva de organizador é um pedido: só vale depois que o admin aprova
+  const ehPedido = !reservation && !isAdmin
   const createReservation = useCreateReservation()
   const updateReservation = useUpdateReservation()
 
@@ -51,8 +56,13 @@ export function ReservationDialog({
       <DialogContent className="w-[calc(100%-4.5rem)] max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {reservation ? 'Editar reserva' : 'Nova reserva'}
+            {reservation ? 'Editar reserva' : ehPedido ? 'Novo pedido de reserva' : 'Nova reserva'}
           </DialogTitle>
+          {ehPedido && (
+            <DialogDescription>
+              O pedido fica pendente até a administração aprovar. Você recebe a resposta por email e nas notificações.
+            </DialogDescription>
+          )}
         </DialogHeader>
         <ReservationForm
           rooms={rooms}
@@ -61,6 +71,7 @@ export function ReservationDialog({
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}
           serverError={serverError}
+          submitLabel={reservation ? 'Salvar alterações' : ehPedido ? 'Enviar pedido' : 'Criar reserva'}
         />
       </DialogContent>
     </Dialog>

@@ -80,6 +80,8 @@ function computeLayout(
 
 // O matiz das reservas marca o que ainda vai acontecer; encerradas ficam em cinza
 function blockColors(r: ReservationWithRoom): string {
+  // Pedido ainda não aprovado: contorno tracejado, sem preenchimento — não ocupa a sala
+  if (r.status === 'pendente') return 'bg-card border-dashed border-warning text-foreground'
   const status = getReservationStatus(r)
   if (status === 'em_andamento') return 'bg-booked border-booked text-white'
   if (status === 'proxima') return 'bg-booked-soft border-transparent border-l-booked border-l-[3px] text-foreground'
@@ -113,6 +115,8 @@ export function ReservationsTimeline() {
   const byDay = useMemo(() => {
     const map: Record<string, ReservationWithRoom[]> = {}
     for (const r of reservations) {
+      // Recusadas e canceladas não acontecem
+      if (r.status === 'recusada' || r.status === 'cancelada') continue
       if (!map[r.data]) map[r.data] = []
       map[r.data].push(r)
     }
@@ -324,6 +328,10 @@ export function ReservationsTimeline() {
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-4 rounded-[3px] bg-muted" />
           <span>Encerrada</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-4 rounded-[3px] bg-card border border-dashed border-warning" />
+          <span>Pedido pendente</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="h-3 w-4 rounded-[3px] bg-muted/40 border" />

@@ -9,18 +9,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ReservationStatusBadge } from './reservation-status-badge'
+import { ApprovalStatusBadge, OrdemPedido } from './approval-status-badge'
 import { ReservationActions } from './reservation-actions'
 import { NivelDot } from './nivel-evento'
-import { useRole } from '@/hooks/use-role'
 import { cn, formatDate, formatTime, getReservationStatus } from '@/lib/utils'
 import type { ReservationWithRoom } from '@/types'
 
 const HEAD = 'h-10 px-4 text-xs font-normal text-muted-foreground'
 const CELL = 'px-4 py-2.5'
 
-export function ReservationsTable({ reservations }: { reservations: ReservationWithRoom[] }) {
-  const { isAdmin } = useRole()
+interface ReservationsTableProps {
+  reservations: ReservationWithRoom[]
+  /** Reserva aberta a partir de uma notificação/email (?destaque=id) */
+  destaqueId?: string
+}
 
+export function ReservationsTable({ reservations, destaqueId }: ReservationsTableProps) {
   return (
     <div className="rounded-lg border bg-card">
       <Table>
@@ -35,14 +39,20 @@ export function ReservationsTable({ reservations }: { reservations: ReservationW
             </TableHead>
             <TableHead className={cn(HEAD, 'hidden lg:table-cell text-right')}>Pessoas</TableHead>
             <TableHead className={cn(HEAD, 'hidden sm:table-cell')}>Status</TableHead>
-            {isAdmin && <TableHead className="w-12" />}
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {reservations.map((r) => {
-            const status = getReservationStatus(r)
+            // Recusada/cancelada não acontece: o horário não importa mais
+            const ativa = r.status !== 'recusada' && r.status !== 'cancelada'
+            const status = ativa ? getReservationStatus(r) : 'encerrada'
             return (
-              <TableRow key={r.id} className="border-rule">
+              <TableRow
+                key={r.id}
+                id={`reserva-${r.id}`}
+                className={cn('border-rule', destaqueId === r.id && 'bg-booked-soft/60')}
+              >
                 <TableCell className={cn(CELL, 'max-w-[210px] sm:max-w-[280px]')}>
                   <p className={cn('flex items-center gap-2 font-medium truncate', status === 'encerrada' && 'max-sm:text-muted-foreground')}>
                     {r.nivel_evento && <NivelDot nivel={r.nivel_evento} />}
@@ -53,6 +63,14 @@ export function ReservationsTable({ reservations }: { reservations: ReservationW
                     {r.nome_empresa ? ` · ${r.nome_empresa}` : ''}
                     <span className="md:hidden"> · {r.sala.nome}</span>
                   </p>
+                  {r.status !== 'aprovada' && (
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 sm:hidden">
+                      <ApprovalStatusBadge status={r.status} />
+                    </p>
+                  )}
+                  {r.status === 'recusada' && r.motivo_recusa && (
+                    <p className="text-xs text-pill-negative-ink mt-1 whitespace-normal">Motivo: {r.motivo_recusa}</p>
+                  )}
                 </TableCell>
                 <TableCell className={cn(CELL, 'hidden md:table-cell')}>{r.sala.nome}</TableCell>
                 <TableCell className={cn(CELL, 'hidden sm:table-cell text-right')}>{formatDate(r.data)}</TableCell>
@@ -70,13 +88,21 @@ export function ReservationsTable({ reservations }: { reservations: ReservationW
                   <span className="text-muted-foreground"> / {r.sala.capacidade}</span>
                 </TableCell>
                 <TableCell className={cn(CELL, 'hidden sm:table-cell')}>
-                  <ReservationStatusBadge reservation={r} />
+                  {/* Aprovada mostra o momento (agora, próxima); os demais, a etapa do pedido */}
+                  {r.status === 'aprovada' ? (
+                    <ReservationStatusBadge reservation={r} />
+                  ) : (
+                    <div className="flex flex-col items-start gap-1">
+                      <ApprovalStatusBadge status={r.status} />
+                      {r.status === 'pendente' && (
+                        <OrdemPedido ordem={r.ordem_pedido} concorrentes={r.concorrentes} />
+                      )}
+                    </div>
+                  )}
                 </TableCell>
-                {isAdmin && (
-                  <TableCell className="pr-2 text-right">
-                    <ReservationActions reservation={r} />
-                  </TableCell>
-                )}
+                <TableCell className="pr-2 text-right">
+                  <ReservationActions reservation={r} />
+                </TableCell>
               </TableRow>
             )
           })}

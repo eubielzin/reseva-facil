@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { type DateRange } from 'react-day-picker'
 import { Plus, List, CalendarRange, Upload } from 'lucide-react'
@@ -24,7 +25,17 @@ import { type SortOrder } from '@/features/reservations/components/reservations-
 type ViewMode = 'lista' | 'timeline'
 
 export default function ReservasPage() {
+  return (
+    <Suspense>
+      <Reservas />
+    </Suspense>
+  )
+}
+
+function Reservas() {
   const { isAdmin } = useRole()
+  // Vindo de notificação/email: ?destaque=<id da reserva>
+  const destaqueId = useSearchParams().get('destaque') ?? undefined
   const [createOpen, setCreateOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('lista')
@@ -65,16 +76,26 @@ export default function ReservasPage() {
 
   const hasFilters = selectedSalaId || dateRange || selectedStatus
 
+  useEffect(() => {
+    if (!destaqueId || isLoading) return
+    document.getElementById(`reserva-${destaqueId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [destaqueId, isLoading])
+
   const summary = useMemo(() => {
     if (!reservations) return undefined
     const today = format(new Date(), 'yyyy-MM-dd')
     const hoje = reservations.filter((r) => r.data === today).length
-    const emAndamento = reservations.filter((r) => getReservationStatus(r) === 'em_andamento').length
-    // Usuário comum recebe da API só as reservas que criou
+    const emAndamento = reservations.filter(
+      (r) => r.status === 'aprovada' && getReservationStatus(r) === 'em_andamento'
+    ).length
+    const pendentes = reservations.filter((r) => r.status === 'pendente').length
+    // Organizador recebe da API só as reservas que criou
     const total = isAdmin
       ? `${reservations.length} ${reservations.length === 1 ? 'reserva' : 'reservas'}`
       : `${reservations.length} ${reservations.length === 1 ? 'reserva sua' : 'reservas suas'}`
-    return `${total} · ${hoje} hoje · ${emAndamento} em andamento`
+    const partes = [total, `${hoje} hoje`, `${emAndamento} em andamento`]
+    if (pendentes > 0) partes.push(`${pendentes} ${pendentes === 1 ? 'pedido pendente' : 'pedidos pendentes'}`)
+    return partes.join(' · ')
   }, [reservations, isAdmin])
 
   return (
@@ -118,7 +139,7 @@ export default function ReservasPage() {
             )}
             <Button size="lg" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4" />
-              Nova reserva
+              {isAdmin ? 'Nova reserva' : 'Novo pedido'}
             </Button>
           </div>
         }
@@ -159,12 +180,14 @@ export default function ReservasPage() {
               description={
                 hasFilters
                   ? 'Troque a sala, o período ou o status para ver outras reservas.'
-                  : 'Reserve uma sala para a sua próxima reunião.'
+                  : isAdmin
+                    ? 'Reserve uma sala para a sua próxima reunião.'
+                    : 'Peça uma sala para o seu evento. A administração aprova e você recebe a resposta por email.'
               }
               action={
                 <Button size="lg" onClick={() => setCreateOpen(true)}>
                   <Plus className="h-4 w-4" />
-                  Nova reserva
+                  {isAdmin ? 'Nova reserva' : 'Novo pedido'}
                 </Button>
               }
             />
@@ -172,7 +195,7 @@ export default function ReservasPage() {
 
           {!isLoading && !isError && filteredReservations.length > 0 && (
             <div className="space-y-3">
-              <ReservationsTable reservations={filteredReservations} />
+              <ReservationsTable reservations={filteredReservations} destaqueId={destaqueId} />
               <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                 <p className="text-xs text-muted-foreground">
                   {filteredReservations.length === reservations?.length
