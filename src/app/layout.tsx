@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${geist.variable} h-full`}>
       <body suppressHydrationWarning className={`${geist.className} h-full antialiased bg-ground text-foreground`}>
-        <ClerkProvider signInUrl="/entrar" signUpUrl="/cadastro" localization={ptBR}>
+        <ClerkProvider signInUrl="/entrar" signUpUrl="/cadastro" afterSignOutUrl="/entrar" localization={ptBR}>
           <Providers>
             {children}
           </Providers>
