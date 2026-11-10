@@ -4,6 +4,8 @@ export interface Room {
   capacidade: number
   disponivel_madrugada: boolean
   disponivel_fim_de_semana: boolean
+  /** URL da foto (virá do MinIO); sem ela o front usa uma foto de exemplo */
+  foto_url?: string
   created_at: string
   updated_at: string
 }

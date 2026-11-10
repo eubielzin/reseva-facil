@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { LayoutGrid, List, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
@@ -9,26 +9,55 @@ import { ErrorState } from '@/components/error-state'
 import { TableSkeleton } from '@/components/loading-state'
 import { RoomsTable } from '@/features/rooms/components/rooms-table'
 import { RoomDialog } from '@/features/rooms/components/room-dialog'
+import { RoomCard, RoomCardSkeleton } from '@/features/rooms/components/room-card'
+import { ReservationDialog } from '@/features/reservations/components/reservation-dialog'
+import { podeCriarReserva } from '@/lib/business-rules'
+import { cn } from '@/lib/utils'
 import { useRooms } from '@/hooks/use-rooms'
 import { useOcupacao } from '@/hooks/use-reservations'
 import { useRole } from '@/hooks/use-role'
 import { useNow } from '@/hooks/use-now'
 import { nowString, reservationsOn, roomNow, todayString, type RoomNow } from '@/lib/occupancy'
 
+type Visao = 'cards' | 'lista'
+const VISAO_KEY = 'salas:visao'
+
+// Preferência só deste navegador; sem storage, fica nos cards
+function useVisao(): [Visao, (v: Visao) => void] {
+  const [visao, setVisao] = useState<Visao>('cards')
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage só existe no browser
+      if (localStorage.getItem(VISAO_KEY) === 'lista') setVisao('lista')
+    } catch {}
+  }, [])
+  function trocar(v: Visao) {
+    setVisao(v)
+    try {
+      localStorage.setItem(VISAO_KEY, v)
+    } catch {}
+  }
+  return [visao, trocar]
+}
+
 export default function SalasPage() {
   const [createOpen, setCreateOpen] = useState(false)
+  const [reservarSalaId, setReservarSalaId] = useState<string | null>(null)
+  const [visao, setVisao] = useVisao()
   const { data: rooms, isLoading, isError, refetch } = useRooms()
-  const { isAdmin } = useRole()
+  const { isAdmin, papel } = useRole()
+  const podeReservar = podeCriarReserva(papel)
   const now = useNow()
   // Ocupação de todos os usuários: "em uso agora" vale mesmo para quem só vê as próprias reservas
   const { data: ocupacao } = useOcupacao(todayString(now))
 
+  const todays = useMemo(() => (ocupacao ? reservationsOn(todayString(now), ocupacao) : undefined), [ocupacao, now])
+
   const roomStates = useMemo(() => {
-    if (!rooms || !ocupacao) return undefined
-    const todays = reservationsOn(todayString(now), ocupacao)
+    if (!rooms || !todays) return undefined
     const hhmm = nowString(now)
     return Object.fromEntries(rooms.map((r) => [r.id, roomNow(r.id, todays, hhmm)])) as Record<string, RoomNow>
-  }, [rooms, ocupacao, now])
+  }, [rooms, todays, now])
 
   const summary = useMemo(() => {
     if (!rooms || rooms.length === 0) return undefined
@@ -52,7 +81,38 @@ export default function SalasPage() {
     <div>
       <PageHeader title="Salas" description={summary} action={newRoomButton} />
 
-      {isLoading && <TableSkeleton rows={4} cols={4} />}
+      {rooms && rooms.length > 0 && (
+        <div className="mb-4 flex justify-end">
+          <div role="group" aria-label="Modo de exibição" className="flex h-8 items-center gap-0.5 rounded-md bg-muted p-0.5">
+            {([
+              { valor: 'cards', label: 'Cards', icon: LayoutGrid },
+              { valor: 'lista', label: 'Lista', icon: List },
+            ] as const).map(({ valor, label, icon: Icon }) => (
+              <button
+                key={valor}
+                type="button"
+                aria-pressed={visao === valor}
+                onClick={() => setVisao(valor)}
+                className={cn(
+                  'inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                  visao === valor ? 'bg-card text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.75} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isLoading && (visao === 'lista' ? (
+        <TableSkeleton rows={4} cols={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <RoomCardSkeleton key={i} />)}
+        </div>
+      ))}
 
       {isError && (
         <ErrorState
@@ -73,11 +133,34 @@ export default function SalasPage() {
         />
       )}
 
-      {!isLoading && !isError && rooms && rooms.length > 0 && (
+      {!isLoading && !isError && rooms && rooms.length > 0 && (visao === 'lista' ? (
         <RoomsTable rooms={rooms} now={roomStates} />
-      )}
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {rooms.map((room, i) => (
+            <RoomCard
+              key={room.id}
+              room={room}
+              posicao={i}
+              state={roomStates?.[room.id]}
+              todays={todays}
+              now={nowString(now)}
+              isAdmin={isAdmin}
+              onReservar={podeReservar ? () => setReservarSalaId(room.id) : undefined}
+            />
+          ))}
+        </div>
+      ))}
 
       {isAdmin && <RoomDialog open={createOpen} onOpenChange={setCreateOpen} />}
+
+      {podeReservar && (
+        <ReservationDialog
+          open={reservarSalaId !== null}
+          onOpenChange={(open) => !open && setReservarSalaId(null)}
+          defaultSalaId={reservarSalaId ?? undefined}
+        />
+      )}
     </div>
   )
 }
