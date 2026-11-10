@@ -78,7 +78,7 @@ export function Navbar() {
         })}
       </nav>
       <div className="px-5 py-5">
-        <UserButton showName />
+        <UserButton showName userProfileMode="navigation" userProfileUrl="/perfil" />
       </div>
     </aside>
   )
@@ -93,7 +93,7 @@ export function MobileHeader() {
       </div>
       <div className="flex items-center gap-2">
         <NotificationBell />
-        <UserButton />
+        <UserButton userProfileMode="navigation" userProfileUrl="/perfil" />
       </div>
     </header>
   )

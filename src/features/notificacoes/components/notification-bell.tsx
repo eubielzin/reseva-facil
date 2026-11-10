@@ -56,7 +56,7 @@ export function NotificationBell({ className }: { className?: string }) {
           ))}
         </div>
         <Link
-          href="/perfil"
+          href="/perfil/notificacoes"
           onClick={() => setOpen(false)}
           className="block border-t px-3 py-2.5 text-center text-sm text-muted-foreground hover:text-foreground"
         >

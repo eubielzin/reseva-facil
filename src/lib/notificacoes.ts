@@ -9,7 +9,7 @@ export function linkDaNotificacao(n: Pick<Notificacao, 'tipo' | 'reserva_id'>): 
     case 'cancelamento_solicitado':
       return `/pedidos?aba=cancelamentos${destaque ? `&${destaque}` : ''}`
     case 'email_falhou':
-      return '/perfil#emails'
+      return '/perfil/emails'
     case 'ingresso_emitido':
     case 'ingresso_cancelado':
     case 'evento_cancelado':

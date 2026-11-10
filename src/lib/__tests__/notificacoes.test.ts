@@ -27,6 +27,6 @@ describe('linkDaNotificacao', () => {
   })
 
   it('falha de email abre a seção de emails do perfil', () => {
-    expect(linkDaNotificacao({ tipo: 'email_falhou' })).toBe('/perfil#emails')
+    expect(linkDaNotificacao({ tipo: 'email_falhou' })).toBe('/perfil/emails')
   })
 })
