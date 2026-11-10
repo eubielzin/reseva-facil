@@ -26,8 +26,12 @@ export function CameraLeitor({ onLer }: { onLer: (texto: string) => void }) {
     onLerRef.current = onLer
   }, [onLer])
 
+  const ligada = estado === 'iniciando' || estado === 'lendo'
+
+  // Depende de "ligada", não do estado: a passagem iniciando → lendo não pode rodar a limpeza,
+  // senão a câmera é desligada logo depois de abrir
   useEffect(() => {
-    if (estado !== 'iniciando' || !videoRef.current) return
+    if (!ligada || !videoRef.current) return
     let parar: (() => void) | undefined
     let cancelado = false
 
@@ -66,9 +70,7 @@ export function CameraLeitor({ onLer }: { onLer: (texto: string) => void }) {
       cancelado = true
       parar?.()
     }
-  }, [estado])
-
-  const ligada = estado === 'iniciando' || estado === 'lendo'
+  }, [ligada])
 
   return (
     <div className="space-y-2">
