@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/use-role'
 import { BrandMark, BrandName } from '@/components/brand-mark'
 import { NotificationBell } from '@/features/notificacoes/components/notification-bell'
-import { CalendarDays, LayoutDashboard, DoorOpen, Inbox, PartyPopper, Ticket, UserRound, type LucideIcon } from 'lucide-react'
+import { CalendarDays, LayoutDashboard, DoorOpen, Inbox, PartyPopper, Ticket, type LucideIcon } from 'lucide-react'
 import type { Papel } from '@/types'
 
 interface NavLink {
@@ -24,19 +24,16 @@ const LINKS: Record<Papel, NavLink[]> = {
     { href: '/reservas', label: 'Reservas', icon: CalendarDays },
     { href: '/eventos', label: 'Eventos', icon: PartyPopper },
     { href: '/ingressos', label: 'Ingressos', icon: Ticket },
-    { href: '/perfil', label: 'Perfil', icon: UserRound },
   ],
   organizador: [
     { href: '/reservas', label: 'Minhas reservas', icon: CalendarDays },
     { href: '/salas', label: 'Salas', icon: DoorOpen },
     { href: '/eventos', label: 'Eventos', icon: PartyPopper },
     { href: '/ingressos', label: 'Ingressos', icon: Ticket },
-    { href: '/perfil', label: 'Perfil', icon: UserRound },
   ],
   usuario: [
     { href: '/eventos', label: 'Eventos', icon: PartyPopper },
     { href: '/ingressos', label: 'Meus ingressos', icon: Ticket },
-    { href: '/perfil', label: 'Perfil', icon: UserRound },
   ],
 }
 
