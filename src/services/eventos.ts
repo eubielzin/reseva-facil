@@ -8,6 +8,20 @@ async function erro(res: Response, padrao: string): Promise<Error> {
   return new Error(msg)
 }
 
+/** URL da capa para o <img>: relativa vem da API (pasta); absoluta já vem pronta (MinIO). */
+export function imagemSrc(url: string): string {
+  return /^https?:\/\//.test(url) ? url : `${API_URL}${url}`
+}
+
+/** Sobe a capa do evento; o formulário guarda a chave e a envia em evento.imagem. */
+export async function enviarImagem(arquivo: File): Promise<{ chave: string; url: string }> {
+  const corpo = new FormData()
+  corpo.append('arquivo', arquivo)
+  const res = await apiFetch('/imagens', { method: 'POST', body: corpo })
+  if (!res.ok) throw await erro(res, 'Não foi possível enviar a imagem.')
+  return res.json()
+}
+
 /** URL absoluta da imagem do QR (pública, sem login — usada também nos emails). */
 export function qrSrc(ingresso: Pick<Ingresso, 'qr_url'>): string {
   return `${API_URL}${ingresso.qr_url}`

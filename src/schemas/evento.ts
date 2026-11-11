@@ -18,6 +18,8 @@ export const eventoSchema = z.object({
     .int('Deve ser um número inteiro')
     .min(0, 'Não pode ser negativo')
     .max(CHECKIN_MINUTOS_MAX, `No máximo ${CHECKIN_MINUTOS_MAX} minutos (24 h)`),
+  // Capa opcional: chave devolvida por POST /imagens
+  imagem: z.string().nullable(),
 })
 
 export type EventoFormValues = z.infer<typeof eventoSchema>

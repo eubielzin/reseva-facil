@@ -51,6 +51,10 @@ export interface EventoResumo {
   codigo_convite?: string
   /** Check-in abre esses minutos antes do início (padrão 60) */
   checkin_minutos_antes: number
+  /** Chave da capa no armazenamento (vai de volta no formulário) */
+  imagem?: string
+  /** URL da capa: relativa à API (/imagens/...) ou absoluta (MinIO) */
+  imagem_url?: string
 }
 
 /** Cabeçalho do leitor e do painel do evento */
@@ -122,6 +126,8 @@ export interface EventoPublico {
   vagas_restantes: number
   esgotado: boolean
   encerrado: boolean
+  /** Capa opcional: relativa à API (/imagens/...) ou absoluta (MinIO) */
+  imagem_url?: string
   meu_ingresso?: Ingresso
 }
 

@@ -64,6 +64,7 @@ function eventoInicial(defaultValues?: ReservationWithRoom): EventoFormValues {
     limite_ingressos: e?.limite_ingressos ?? defaultValues?.quantidade_participantes ?? 1,
     tags: e?.tags ?? [...TAGS_SUGERIDAS],
     checkin_minutos_antes: e?.checkin_minutos_antes ?? CHECKIN_MINUTOS_PADRAO,
+    imagem: e?.imagem ?? null,
   }
 }
 
@@ -425,6 +426,7 @@ export function ReservationForm({
             <EventoFields
               capacidadeSala={selectedRoom?.capacidade}
               ingressosEmitidos={defaultValues?.evento?.ingressos_emitidos}
+              imagemUrl={defaultValues?.evento?.imagem_url}
             />
           )}
         </div>

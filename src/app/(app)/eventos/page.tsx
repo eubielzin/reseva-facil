@@ -3,8 +3,7 @@
 import { PageHeader } from '@/components/page-header'
 import { EmptyState } from '@/components/empty-state'
 import { ErrorState } from '@/components/error-state'
-import { CardSkeleton } from '@/components/loading-state'
-import { EventoCard } from '@/features/eventos/components/evento-card'
+import { EventoCard, EventoCardSkeleton } from '@/features/eventos/components/evento-card'
 import { useVitrine } from '@/hooks/use-eventos'
 
 // Vitrine: eventos públicos e aprovados que ainda não começaram
@@ -16,9 +15,9 @@ export default function EventosPage() {
       <PageHeader title="Eventos" description="Eventos abertos da instituição. Escolha um para pegar o seu ingresso." />
 
       {isLoading && (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Array.from({ length: 4 }, (_, i) => (
-            <CardSkeleton key={i} className="h-28 rounded-lg border bg-card p-5 space-y-3" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <EventoCardSkeleton key={i} />
           ))}
         </div>
       )}
@@ -30,7 +29,7 @@ export default function EventosPage() {
         />
       )}
       {eventos && eventos.length > 0 && (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {eventos.map((e) => (
             <EventoCard key={e.id} evento={e} />
           ))}

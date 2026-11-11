@@ -35,6 +35,7 @@ function valoresIniciais(reserva: ReservationWithRoom): EditarEventoFormValues {
       limite_ingressos: e?.limite_ingressos ?? 1,
       tags: e?.tags ?? [],
       checkin_minutos_antes: e?.checkin_minutos_antes ?? 60,
+      imagem: e?.imagem ?? null,
     },
   }
 }
@@ -73,7 +74,11 @@ export function EditarEventoDialog({ open, onOpenChange, reserva }: EditarEvento
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <EventoFields capacidadeSala={reserva.sala.capacidade} ingressosEmitidos={evento.ingressos_emitidos} />
+            <EventoFields
+              capacidadeSala={reserva.sala.capacidade}
+              ingressosEmitidos={evento.ingressos_emitidos}
+              imagemUrl={evento.imagem_url}
+            />
             {editar.error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

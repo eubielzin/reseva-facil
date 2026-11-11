@@ -73,6 +73,7 @@ export const reservationFormSchema = reservaBase
       limite_ingressos: z.number(),
       tags: z.array(z.string()),
       checkin_minutos_antes: z.number(),
+      imagem: z.string().nullable(),
     }),
   })
   .refine((d) => d.horario_fim > d.horario_inicio, {

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import type { EventoFormValues } from '@/schemas/evento'
 import { TagsEditor } from './tags-editor'
+import { CapaField } from './capa-field'
 
 const VISIBILIDADES = [
   { valor: 'publico', label: 'Público', descricao: 'Aparece na vitrine de eventos', icon: Globe },
@@ -18,9 +19,11 @@ const VISIBILIDADES = [
  * Campos do evento com ingressos. Usado no pedido de reserva e em "Editar evento":
  * os dois formulários guardam os valores em evento.* e envolvem este bloco em <Form>.
  */
-export function EventoFields({ capacidadeSala, ingressosEmitidos = 0 }: {
+export function EventoFields({ capacidadeSala, ingressosEmitidos = 0, imagemUrl }: {
   capacidadeSala?: number
   ingressosEmitidos?: number
+  /** Capa já salva, para a prévia ao editar */
+  imagemUrl?: string
 }) {
   const { control } = useFormContext<{ evento: EventoFormValues }>()
 
@@ -57,6 +60,8 @@ export function EventoFields({ capacidadeSala, ingressosEmitidos = 0 }: {
           </FormItem>
         )}
       />
+
+      <CapaField imagemUrl={imagemUrl} />
 
       <FormField
         control={control}

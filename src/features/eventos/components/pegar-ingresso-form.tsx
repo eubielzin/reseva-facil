@@ -32,7 +32,7 @@ export function PegarIngressoForm({ evento, convite }: { evento: EventoPublico; 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Você vai como</FormLabel>
-              <div role="radiogroup" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div role="radiogroup" className="grid grid-cols-2 gap-2">
                 {evento.tags.map((tag) => (
                   <button
                     key={tag}
@@ -63,7 +63,7 @@ export function PegarIngressoForm({ evento, convite }: { evento: EventoPublico; 
           </Alert>
         )}
 
-        <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={pegar.isPending}>
+        <Button type="submit" size="lg" className="w-full" disabled={pegar.isPending}>
           <Ticket className="h-4 w-4" />
           {pegar.isPending ? 'Garantindo…' : 'Pegar ingresso'}
         </Button>

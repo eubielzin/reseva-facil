@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { cn, formatDate, formatTime } from '@/lib/utils'
 import { qrSrc } from '@/services/eventos'
+import { EventoCapa } from './evento-capa'
 import { eventoTerminou } from '@/lib/business-rules'
 import { useCancelarIngresso } from '@/hooks/use-eventos'
 import type { EventoPublico, Ingresso } from '@/types'
@@ -27,7 +28,11 @@ export function IngressoCard({ ingresso, evento }: { ingresso: Ingresso; evento?
     !eventoTerminou(ev.data, ev.horario_fim, format(new Date(), "yyyy-MM-dd'T'HH:mm"))
 
   return (
-    <article className={cn('rounded-lg border bg-card', !ativo && 'opacity-70')}>
+    <article className={cn('overflow-hidden rounded-lg border bg-card', !ativo && 'opacity-70')}>
+      {/* Em "Meus ingressos" a capa ajuda a reconhecer o evento; na página do evento ela já está no topo */}
+      {!evento && ev?.imagem_url && (
+        <EventoCapa id={ev.id} titulo={ev.titulo} data={ev.data} imagemUrl={ev.imagem_url} className="aspect-auto h-24" />
+      )}
       <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
         {ativo ? (
           // eslint-disable-next-line @next/next/no-img-element -- imagem gerada pela API, sem otimização do Next
