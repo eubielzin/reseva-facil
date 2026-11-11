@@ -6,10 +6,10 @@ import { CardSkeleton } from '@/components/loading-state'
 import { LeitorCheckin } from '@/features/checkin/components/leitor-checkin'
 import { useCheckinInfo } from '@/hooks/use-checkin'
 
-// Leitor da porta, aberto pelo link de check-in (equipe de apoio, organizador ou admin)
+// Leitor da porta: dono do evento, admin ou colaborador escolhido pelo dono
 export default function CheckinPage() {
-  const { codigo } = useParams<{ codigo: string }>()
-  const { data: info, isLoading, isError, error, refetch } = useCheckinInfo(codigo)
+  const { id } = useParams<{ id: string }>()
+  const { data: info, isLoading, isError, error, refetch } = useCheckinInfo(id)
 
   if (isLoading) return <CardSkeleton className="mx-auto h-64 max-w-xl rounded-lg border bg-card p-5 space-y-3" />
   if (isError) {
@@ -19,5 +19,5 @@ export default function CheckinPage() {
       </div>
     )
   }
-  return info ? <LeitorCheckin info={info} codigoCheckin={codigo} /> : null
+  return info ? <LeitorCheckin info={info} /> : null
 }

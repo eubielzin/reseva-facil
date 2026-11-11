@@ -33,9 +33,9 @@ describe('redirecionamentoDoPapel', () => {
     expect(redirecionamentoDoPapel('usuario', '/ingressos')).toBeNull()
   })
 
-  it('qualquer papel abre o leitor pelo link de check-in', () => {
-    expect(redirecionamentoDoPapel('usuario', '/checkin/AB12CD34EF56')).toBeNull()
-    expect(redirecionamentoDoPapel('organizador', '/checkin/AB12CD34EF56')).toBeNull()
+  it('qualquer papel abre o leitor do evento (a API decide se é colaborador)', () => {
+    expect(redirecionamentoDoPapel('usuario', '/eventos/e1/checkin')).toBeNull()
+    expect(redirecionamentoDoPapel('organizador', '/eventos/e1/checkin')).toBeNull()
   })
 
   it('painel do evento é área do organizador', () => {

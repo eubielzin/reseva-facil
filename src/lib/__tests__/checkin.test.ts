@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extrairCodigoIngresso, aberturaCheckin, corDoResultado } from '../business-rules'
+import { extrairCodigoIngresso, aberturaCheckin, corDoResultado, eventoTerminou } from '../business-rules'
 import { gerarCsv } from '../csv'
 
 // Espelha CheckinRulesTest.java da reseva-api.
@@ -52,5 +52,14 @@ describe('gerarCsv', () => {
       '"Bruno; Lima";Aluno',
       '"Carla\nCosta";',
     ])
+  })
+})
+
+describe('eventoTerminou', () => {
+  it('o leitor do colaborador continua até o fim do evento, não só até o início', () => {
+    expect(eventoTerminou('2026-11-12', '18:00', '2026-11-12T14:30')).toBe(false)
+    expect(eventoTerminou('2026-11-12', '18:00:00', '2026-11-12T17:59')).toBe(false)
+    expect(eventoTerminou('2026-11-12', '18:00', '2026-11-12T18:00')).toBe(true)
+    expect(eventoTerminou('2026-11-12', '18:00', '2026-11-13T08:00')).toBe(true)
   })
 })

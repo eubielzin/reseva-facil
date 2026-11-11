@@ -4,11 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Ban, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Ban, MapPin, ScanLine } from 'lucide-react'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { cn, formatDate, formatTime } from '@/lib/utils'
 import { qrSrc } from '@/services/eventos'
+import { eventoTerminou } from '@/lib/business-rules'
 import { useCancelarIngresso } from '@/hooks/use-eventos'
 import type { EventoPublico, Ingresso } from '@/types'
 
@@ -20,6 +21,10 @@ export function IngressoCard({ ingresso, evento }: { ingresso: Ingresso; evento?
   const cancelar = useCancelarIngresso()
   const ev = evento ?? ingresso.evento
   const ativo = ingresso.status === 'ativo'
+  // "encerrado" da API quer dizer que já começou; o leitor vale até o fim
+  const leitorAberto =
+    ativo && ingresso.colaborador && !!ev &&
+    !eventoTerminou(ev.data, ev.horario_fim, format(new Date(), "yyyy-MM-dd'T'HH:mm"))
 
   return (
     <article className={cn('rounded-lg border bg-card', !ativo && 'opacity-70')}>
@@ -65,6 +70,13 @@ export function IngressoCard({ ingresso, evento }: { ingresso: Ingresso; evento?
                 : `Cancelado em ${quando(ingresso.cancelado_em ?? ingresso.emitido_em)}`}
             </span>
           </div>
+          {leitorAberto && ev && (
+            // O dono do evento liberou o leitor para esta pessoa
+            <Link href={`/eventos/${ev.id}/checkin`} className={cn(buttonVariants({ size: 'sm' }), 'mr-1')}>
+              <ScanLine className="h-4 w-4" />
+              Abrir leitor de QR
+            </Link>
+          )}
           {ingresso.pode_cancelar && (
             <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground" onClick={() => setCancelarOpen(true)}>
               <Ban className="h-4 w-4" />

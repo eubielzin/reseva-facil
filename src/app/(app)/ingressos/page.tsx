@@ -10,6 +10,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { IngressoCard } from '@/features/eventos/components/ingresso-card'
 import { useMeusIngressos } from '@/hooks/use-eventos'
 import { cn } from '@/lib/utils'
+import { eventoTerminou } from '@/lib/business-rules'
+import { format } from 'date-fns'
 
 type Aba = 'proximos' | 'anteriores'
 
@@ -19,8 +21,15 @@ export default function IngressosPage() {
 
   const { proximos, anteriores } = useMemo(() => {
     const lista = ingressos ?? []
-    // Próximos: ativos de eventos que ainda não começaram, na ordem da data
-    const proximos = lista.filter((i) => i.status === 'ativo' && !i.evento?.encerrado)
+    const agora = format(new Date(), "yyyy-MM-dd'T'HH:mm")
+    // Próximos: ativos de eventos que ainda não começaram, na ordem da data.
+    // Colaborador continua vendo o ingresso (com o leitor) até o fim do evento.
+    const proximos = lista.filter(
+      (i) =>
+        i.status === 'ativo' &&
+        (!i.evento?.encerrado ||
+          (i.colaborador && !eventoTerminou(i.evento.data, i.evento.horario_fim, agora)))
+    )
     const anteriores = lista
       .filter((i) => !proximos.includes(i))
       .sort((a, b) => (b.evento?.data ?? '').localeCompare(a.evento?.data ?? ''))

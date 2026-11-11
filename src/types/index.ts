@@ -51,8 +51,6 @@ export interface EventoResumo {
   codigo_convite?: string
   /** Check-in abre esses minutos antes do início (padrão 60) */
   checkin_minutos_antes: number
-  /** Link da equipe de apoio: /checkin/{codigo_checkin} */
-  codigo_checkin?: string
 }
 
 /** Cabeçalho do leitor e do painel do evento */
@@ -81,6 +79,8 @@ export interface Participante {
   emitido_em: string
   cancelado_em?: string
   check_in_em?: string
+  /** Escolhido pelo dono do evento: pode abrir o leitor de QR */
+  colaborador: boolean
 }
 
 export type ResultadoCheckin =
@@ -136,6 +136,8 @@ export interface Ingresso {
   pode_cancelar: boolean
   /** Relativo à API e sem login: /ingressos/{codigo}/qr.png */
   qr_url: string
+  /** O dono do evento liberou o leitor de QR para esta pessoa */
+  colaborador: boolean
   evento?: EventoPublico
 }
 

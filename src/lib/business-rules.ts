@@ -236,3 +236,8 @@ export function corDoResultado(resultado: ResultadoCheckin): 'verde' | 'amarelo'
   if (resultado === 'ja_entrou' || resultado === 'antes_da_abertura') return 'amarelo'
   return 'vermelho'
 }
+
+/** O evento já acabou? agora em "yyyy-MM-ddTHH:mm" (hora local). Fim é exclusivo, como na API. */
+export function eventoTerminou(data: string, horarioFim: string, agora: string): boolean {
+  return agora >= `${data}T${horarioFim.slice(0, 5)}`
+}

@@ -4,19 +4,22 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ArrowLeft, Download, Link2, RefreshCw, ScanLine, Search, Undo2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { ArrowLeft, Download, MoreHorizontal, ScanLine, Search, ShieldCheck, ShieldOff, Undo2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ErrorState } from '@/components/error-state'
 import { TableSkeleton } from '@/components/loading-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn, formatDate, formatTime } from '@/lib/utils'
 import { baixarArquivo, gerarCsv } from '@/lib/csv'
-import { linkCheckin } from '@/services/checkin'
-import { useDesfazerCheckin, useNovoLinkCheckin, usePainelEvento } from '@/hooks/use-checkin'
-import { useReservation } from '@/hooks/use-reservations'
+import { useDefinirColaborador, useDesfazerCheckin, usePainelEvento } from '@/hooks/use-checkin'
 import type { Participante } from '@/types'
 
 type Presenca = 'todos' | 'vieram' | 'nao_vieram' | 'cancelados'
@@ -42,16 +45,12 @@ function passa(p: Participante, presenca: Presenca): boolean {
 /** Painel do organizador: quem pegou ingresso, quando, quem veio e a que horas. */
 export function PainelEvento({ reservaId }: { reservaId: string }) {
   const { data: painel, isLoading, isError, refetch } = usePainelEvento(reservaId)
-  const { data: reserva } = useReservation(reservaId)
   const desfazer = useDesfazerCheckin(reservaId)
-  const novoLink = useNovoLinkCheckin()
+  const colaborador = useDefinirColaborador(reservaId)
   const [tag, setTag] = useState('')
   const [presenca, setPresenca] = useState<Presenca>('todos')
   const [busca, setBusca] = useState('')
   const [desfazendo, setDesfazendo] = useState<Participante | null>(null)
-  const [novoLinkOpen, setNovoLinkOpen] = useState(false)
-
-  const codigoCheckin = reserva?.evento?.codigo_checkin
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
@@ -88,15 +87,7 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
     baixarArquivo(`participantes-${evento.titulo.toLowerCase().replace(/[^a-z0-9]+/gi, '-')}-${evento.data}.csv`, csv)
   }
 
-  async function copiarLink() {
-    if (!codigoCheckin) return
-    try {
-      await navigator.clipboard.writeText(linkCheckin(codigoCheckin))
-      toast.success('Link de check-in copiado. Envie para quem vai ajudar na porta.')
-    } catch {
-      toast.error('Não foi possível copiar. Link: ' + linkCheckin(codigoCheckin))
-    }
-  }
+  const colaboradores = painel.participantes.filter((p) => p.colaborador && p.status === 'ativo')
 
   return (
     <div className="space-y-6">
@@ -115,12 +106,10 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {codigoCheckin && (
-              <Link href={`/checkin/${codigoCheckin}`} className={buttonVariants({ size: 'lg' })}>
-                <ScanLine className="h-4 w-4" />
-                Abrir leitor
-              </Link>
-            )}
+            <Link href={`/eventos/${evento.evento_id}/checkin`} className={buttonVariants({ size: 'lg' })}>
+              <ScanLine className="h-4 w-4" />
+              Abrir leitor
+            </Link>
             <Button variant="outline" size="lg" onClick={exportar} disabled={filtrados.length === 0}>
               <Download className="h-4 w-4" />
               Exportar CSV
@@ -156,24 +145,15 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
         </ul>
       </section>
 
-      {/* Link da equipe */}
-      {codigoCheckin && (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
-          <p className="text-sm text-muted-foreground">
-            Equipe de apoio: envie o link de check-in. Quem abrir (logado) só consegue ler os QR deste evento.
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={copiarLink}>
-              <Link2 className="h-4 w-4" />
-              Copiar link
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setNovoLinkOpen(true)}>
-              <RefreshCw className="h-4 w-4" />
-              Gerar novo
-            </Button>
-          </div>
-        </section>
-      )}
+      {/* Colaboradores: escolhidos entre quem pegou ingresso */}
+      <section className="flex items-start gap-3 rounded-lg border border-dashed px-4 py-3">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">
+          {colaboradores.length === 0
+            ? 'Quem vai ajudar na porta? Peça para a pessoa pegar um ingresso e, na lista abaixo, use "Tornar colaborador". Ela passa a ver o leitor de QR em Meus ingressos.'
+            : `Colaboradores no leitor: ${colaboradores.map((p) => p.nome ?? p.codigo).join(', ')}. Para incluir mais alguém, use "Tornar colaborador" na lista.`}
+        </p>
+      </section>
 
       {/* Filtros */}
       <section className="space-y-3">
@@ -247,8 +227,16 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
                 return (
                   <TableRow key={p.ingresso_id} className="border-rule">
                     <TableCell className={cn('px-4 py-2.5 max-w-[220px]', cancelado && 'text-muted-foreground')}>
-                      <p className={cn('truncate font-medium', cancelado && 'line-through font-normal')}>
-                        {p.nome ?? 'Sem nome'}
+                      <p className="flex min-w-0 items-center gap-1.5">
+                        <span className={cn('truncate font-medium', cancelado && 'line-through font-normal')}>
+                          {p.nome ?? 'Sem nome'}
+                        </span>
+                        {p.colaborador && !cancelado && (
+                          <span className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full bg-booked-soft px-2 text-[11px] font-medium text-booked">
+                            <ShieldCheck className="h-3 w-3" />
+                            Colaborador
+                          </span>
+                        )}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">{p.email}</p>
                     </TableCell>
@@ -267,16 +255,39 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
                       )}
                     </TableCell>
                     <TableCell className="pr-2 text-right">
-                      {p.check_in_em && !cancelado && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Desfazer check-in"
-                          aria-label={`Desfazer check-in de ${p.nome ?? p.codigo}`}
-                          onClick={() => setDesfazendo(p)}
-                        >
-                          <Undo2 className="h-4 w-4" />
-                        </Button>
+                      {!cancelado && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className={buttonVariants({ variant: 'ghost', size: 'icon' })}
+                            aria-label={`Ações de ${p.nome ?? p.codigo}`}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              disabled={colaborador.isPending}
+                              onClick={() => colaborador.mutate({ ingressoId: p.ingresso_id, colaborador: !p.colaborador })}
+                            >
+                              {p.colaborador ? (
+                                <>
+                                  <ShieldOff className="h-4 w-4 mr-2" />
+                                  Remover colaborador
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldCheck className="h-4 w-4 mr-2" />
+                                  Tornar colaborador
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            {p.check_in_em && (
+                              <DropdownMenuItem onClick={() => setDesfazendo(p)}>
+                                <Undo2 className="h-4 w-4 mr-2" />
+                                Desfazer check-in
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </TableCell>
                   </TableRow>
@@ -301,18 +312,6 @@ export function PainelEvento({ reservaId }: { reservaId: string }) {
         loading={desfazer.isPending}
         confirmLabel="Desfazer check-in"
         loadingLabel="Desfazendo..."
-      />
-
-      <ConfirmDialog
-        open={novoLinkOpen}
-        onOpenChange={setNovoLinkOpen}
-        title="Gerar novo link de check-in"
-        description="O link antigo para de funcionar. Envie o novo para a equipe de apoio."
-        onConfirm={() => novoLink.mutate(reservaId, { onSuccess: () => setNovoLinkOpen(false) })}
-        loading={novoLink.isPending}
-        confirmLabel="Gerar novo link"
-        loadingLabel="Gerando..."
-        variant="default"
       />
     </div>
   )

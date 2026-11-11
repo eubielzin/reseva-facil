@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { queryKeys } from '@/lib/query-client'
-import { desfazerCheckin, fetchCheckinInfo, fetchPainel, lerIngresso, novoLinkCheckin } from '@/services/checkin'
+import { definirColaborador, desfazerCheckin, fetchCheckinInfo, fetchPainel, lerIngresso } from '@/services/checkin'
 
-export function useCheckinInfo(codigoCheckin: string) {
+export function useCheckinInfo(eventoId: string) {
   return useQuery({
-    queryKey: queryKeys.checkin.link(codigoCheckin),
-    queryFn: () => fetchCheckinInfo(codigoCheckin),
+    queryKey: queryKeys.checkin.leitor(eventoId),
+    queryFn: () => fetchCheckinInfo(eventoId),
     retry: false,
   })
 }
@@ -15,8 +15,7 @@ export function useCheckinInfo(codigoCheckin: string) {
 export function useLerIngresso() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ eventoId, codigo, codigoCheckin }: { eventoId: string; codigo: string; codigoCheckin?: string }) =>
-      lerIngresso(eventoId, codigo, codigoCheckin),
+    mutationFn: ({ eventoId, codigo }: { eventoId: string; codigo: string }) => lerIngresso(eventoId, codigo),
     onSuccess: (leitura) => {
       if (leitura.resultado === 'ok') qc.invalidateQueries({ queryKey: ['checkin', 'painel'] })
     },
@@ -45,13 +44,18 @@ export function useDesfazerCheckin(reservaId: string) {
   })
 }
 
-export function useNovoLinkCheckin() {
+export function useDefinirColaborador(reservaId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (reservaId: string) => novoLinkCheckin(reservaId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reservations'] })
-      toast.success('Novo link de check-in gerado. O antigo não funciona mais.')
+    mutationFn: ({ ingressoId, colaborador }: { ingressoId: string; colaborador: boolean }) =>
+      definirColaborador(ingressoId, colaborador),
+    onSuccess: (p) => {
+      qc.invalidateQueries({ queryKey: queryKeys.checkin.painel(reservaId) })
+      toast.success(
+        p.colaborador
+          ? `${p.nome ?? p.codigo} agora pode abrir o leitor de QR.`
+          : `${p.nome ?? p.codigo} não é mais colaborador.`
+      )
     },
     onError: (error: Error) => toast.error(error.message),
   })

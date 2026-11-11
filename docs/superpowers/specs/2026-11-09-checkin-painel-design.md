@@ -2,6 +2,10 @@
 
 Data: 2026-11-09 · Status: aprovado para implementação · Depende das etapas 1 e 2
 
+## Atualização 2026-11-11 — colaboradores no lugar do link
+
+O link de check-in da equipe foi removido (V12 apaga `eventos.codigo_checkin`). Agora o dono marca, no painel, quem entre os participantes com ingresso ativo é **colaborador** (`ingressos.colaborador`, `POST /ingressos/{id}/colaborador`). O colaborador vê "Abrir leitor de QR" em Meus ingressos até o fim do evento; o leitor fica em `/eventos/[id]/checkin` (`GET /eventos/{id}/checkin`). Cancelar o ingresso tira o colaborador. As referências ao link abaixo são históricas.
+
 ## Decisões
 
 - **Quem lê os QR:** dono do evento, admin e equipe de apoio com o **link de check-in** (`/checkin/{codigo_checkin}`), secreto e regenerável. O link só dá acesso ao leitor daquele evento; funciona para qualquer papel logado.

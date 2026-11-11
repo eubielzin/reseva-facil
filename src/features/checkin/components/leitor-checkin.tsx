@@ -19,14 +19,9 @@ const TEMPO_CARTAO_MS = 3500
 
 const VIBRACAO = { verde: [80], amarelo: [80, 60, 80], vermelho: [350] } as const
 
-interface LeitorCheckinProps {
-  info: CheckinInfo
-  /** Link da equipe; o dono e o admin leem sem ele */
-  codigoCheckin?: string
-}
 
 /** Leitor da porta: câmera + código digitado (ou leitor USB, que "digita" e dá Enter). */
-export function LeitorCheckin({ info, codigoCheckin }: LeitorCheckinProps) {
+export function LeitorCheckin({ info }: { info: CheckinInfo }) {
   const ler = useLerIngresso()
   const [leitura, setLeitura] = useState<CheckinLeitura | null>(null)
   const [contagem, setContagem] = useState({ presentes: info.presentes, total: info.total })
@@ -40,7 +35,7 @@ export function LeitorCheckin({ info, codigoCheckin }: LeitorCheckinProps) {
 
   function enviar(texto: string) {
     ler.mutate(
-      { eventoId: info.evento_id, codigo: texto, codigoCheckin },
+      { eventoId: info.evento_id, codigo: texto },
       {
         onSuccess: (r) => {
           setLeitura(r)
