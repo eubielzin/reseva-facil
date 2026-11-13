@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  landing-page-academia:
+    container_name: reseva-facil
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile
+    image: reseva-facil
+    restart: unless-stopped
+    ports:
+      - '1020:3000'
