@@ -1,0 +1,39 @@
+# Variáveis globais valem pra todos os jobs e são mescladas com as
+# "variables" de cada job. Não coloque variables dentro de .build-image: o
+# "<<:" do YAML faria as variables do job substituírem as do bloco inteiro.
+variables:
+  COMPOSE_HTTP_TIMEOUT: '600'
+  DOCKER_CLIENT_TIMEOUT: '600'
+  # Nome de projeto fixo e exclusivo, pro compose nunca confundir este deploy
+  # com outros sistemas do mesmo servidor.
+  COMPOSE_PROJECT_NAME: 'reseva-facil'
+
+.build-image: &build-image
+  script:
+    # Remove só o container deste projeto (nunca usar --remove-orphans aqui).
+    - docker rm -f reseva-facil || true
+    - docker-compose -f deploy/docker/docker-compose.yml build reseva-facil
+    - docker-compose -f deploy/docker/docker-compose.yml up -d reseva-facil
+
+stages:
+  - deploy
+
+deploy-staging:
+  stage: deploy
+  variables:
+    CI_ENVIROMENT: 'staging'
+  <<: *build-image
+  tags:
+    - docker.prod.omega
+  only:
+    - develop
+
+deploy-production:
+  stage: deploy
+  variables:
+    CI_ENVIROMENT: 'production'
+  <<: *build-image
+  tags:
+    - docker.Melpomene
+  only:
+    - main
